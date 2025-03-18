@@ -196,7 +196,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
                     stderr
                 ),
             }, {
-                visible = false,
+                visible = true,
             })
 
             self.chat:add_buf_message({
@@ -218,7 +218,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
                         action_name,
                         result.text
                     ),
-                }, { visible = false })
+                }, { visible = true })
             end
 
             -- Show image content if present
@@ -232,7 +232,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
                 --             base64 = string.format("data:%s;base64,%s", image.mimeType, image.data),
                 --         }
                 --     end, result.images),
-                -- }, { visible = false })
+                -- }, { visible = true })
             end
 
             self.chat:add_buf_message({
