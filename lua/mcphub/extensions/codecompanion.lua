@@ -2,8 +2,10 @@
 *MCP Servers Tool*
 This tool can be used to call tools and resources from the MCP Servers.
 --]]
-local config = require("codecompanion.config")
 local xml2lua = require("codecompanion.utils.xml.xml2lua")
+
+local MCP_ROLE = "MCP"
+
 ---@class CodeCompanion.Tool
 local tool_schema = {
     name = "mcp",
@@ -174,7 +176,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
             local action = self.tool.request.action
             local action_name = action._attr.type
             self.chat:add_buf_message({
-                role = config.constants.LLM_ROLE,
+                role = MCP_ROLE,
                 content = string.format("I've rejected the request to use the `%s` action.\n", action_name),
             })
         end,
@@ -185,7 +187,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
                 stderr = vim.inspect(stderr)
             end
             self.chat:add_message({
-                role = config.constants.LLM_ROLE,
+                role = MCP_ROLE,
                 content = string.format(
                     [[ERROR: The `%s` call failed with the following error:
 <error>
@@ -200,7 +202,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
             })
 
             self.chat:add_buf_message({
-                role = config.constants.LLM_ROLE,
+                role = MCP_ROLE,
                 content = "I've shared the error message from the `mcp` tool with you.\n",
             })
         end,
@@ -211,7 +213,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
             -- Show text content if present
             if result.text and result.text ~= "" then
                 self.chat:add_message({
-                    role = config.constants.LLM_ROLE,
+                    role = MCP_ROLE,
                     content = string.format(
                         [[The `%s` call returned text content:
 %s]],
@@ -225,7 +227,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
             if result.images and #result.images > 0 then
                 -- TODO: Add image support when codecompanion supports it
                 -- self.chat:add_message({
-                --     role = config.constants.LLM_ROLE,
+                --     role = MCP_ROLE,
                 --     content = vim.tbl_map(function(image)
                 --         return {
                 --             type = "image",
@@ -236,7 +238,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
             end
 
             self.chat:add_buf_message({
-                role = config.constants.LLM_ROLE,
+                role = MCP_ROLE,
                 content = "I've shared the result of the `mcp` tool with you.\n",
             })
         end,
