@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-04-01
+
+### Added
+
+- Added explicit instructions for MCP tool extensions
+  - Improved parameter validation and error messages
+  - Better documentation of required fields
+  - Enhanced type checking for arguments
+
+### Changed
+
+- Changed CodeCompanion show_result_in_chat to false by default
+- Disabled replace_in_file tool in native Neovim server
+
 ## [4.0.0] - 2025-04-01
+
+### Added
+
+- Added explicit instructions for MCP tool extensions
+  - Improved parameter validation and error messages
+  - Better documentation of required fields
+  - Enhanced type checking for arguments
+
+### Fixed
+
+- Changed CodeCompanion show_result_in_chat to false by default
+- Disabled replace_in_file tool in native Neovim server
 
 ### Added
 
