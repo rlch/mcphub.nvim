@@ -64,7 +64,10 @@ function M.mcp_tool()
             if params.action == "use_mcp_tool" and not params.tool_name then
                 return nil, "tool_name is required"
             end
-
+            params.arguments = params.arguments or {}
+            if type(params.arguments) ~= "table" then
+                return nil, "arguments must be a table"
+            end
             -- local should_show_prompt = vim.g.mcphub_auto_approve ~= true
             local should_show_prompt = State.config.extensions.avante.auto_approve_mcp_tool_calls ~= true
             if should_show_prompt then
@@ -74,7 +77,7 @@ function M.mcp_tool()
                     server_name = params.server_name,
                     tool_name = params.tool_name,
                     uri = params.uri,
-                    arguments = params.arguments or {},
+                    arguments = params.arguments,
                 })
 
                 if not confirmed then
