@@ -4,33 +4,33 @@ local State = require("mcphub.state")
 function M.mcp_tool()
     return {
         name = "mcp",
-        description = "The Model Context Protocol (MCP) enables communication with locally running MCP servers that provide additional tools and resources to extend your capabilities. This tool calls mcp tools and resources on the mcp servers.",
+        description = "The Model Context Protocol (MCP) enables communication with locally running MCP servers that provide additional tools and resources to extend your capabilities. This tool calls mcp tools and resources on the mcp servers using `use_mcp_tool` and `access_mcp_resource` actions respectively.",
         param = {
             type = "table",
             fields = {
                 {
                     name = "action",
-                    description = "Action to perform: one of `access_mcp_resource` or `use_mcp_tool`",
+                    description = "Action to perform: one of `access_mcp_resource` or `use_mcp_tool`. Must be provided always.",
                     type = "string",
                 },
                 {
                     name = "server_name",
-                    description = "Name of the MCP server",
+                    description = "Name of the MCP server. Must be provided always.",
                     type = "string",
                 },
                 {
                     name = "uri",
-                    description = "URI of the resource to access",
+                    description = "URI of the resource or resourceTemplate to access when using `access_mcp_resource` action",
                     type = "string",
                 },
                 {
                     name = "tool_name",
-                    description = "Name of the tool to call",
+                    description = "Name of the tool to call while using `use_mcp_tool` action",
                     type = "string",
                 },
                 {
                     name = "arguments",
-                    description = "Arguments for the tool",
+                    description = "Arguments for the `use_mcp_tool` action. Must be an object",
                     type = "object",
                 },
             },
@@ -57,16 +57,19 @@ function M.mcp_tool()
             if not params.server_name then
                 return nil, "server_name is required"
             end
+            if vim.tbl_contains({ "access_mcp_resource", "use_mcp_tool" }, params.action) == false then
+                return nil, "action must be one of `access_mcp_resource` or `use_mcp_tool`"
+            end
             if params.action == "access_mcp_resource" and not params.uri then
                 return nil, "uri is required"
             end
 
             if params.action == "use_mcp_tool" and not params.tool_name then
+                params.arguments = params.arguments or {}
+                if type(params.arguments) ~= "table" then
+                    return nil, "arguments must be an object"
+                end
                 return nil, "tool_name is required"
-            end
-            params.arguments = params.arguments or {}
-            if type(params.arguments) ~= "table" then
-                return nil, "arguments must be a table"
             end
             -- local should_show_prompt = vim.g.mcphub_auto_approve ~= true
             local should_show_prompt = State.config.extensions.avante.auto_approve_mcp_tool_calls ~= true

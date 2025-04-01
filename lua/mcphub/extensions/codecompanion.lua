@@ -17,6 +17,9 @@ local function parse_params(action)
     if not server_name then
         table.insert(errors, "Server name is required")
     end
+    if not vim.tbl_contains({ "use_mcp_tool", "access_mcp_resource" }, action_name) then
+        table.insert(errors, "Action must be one of `use_mcp_tool` or `access_mcp_resource`")
+    end
     if action_name == "use_mcp_tool" and not tool_name then
         table.insert(errors, "Tool name is required")
     end
@@ -169,10 +172,16 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
 
 7. **XML Structure Requirements**:
    - Format: ```xml<tools><tool name="mcp"><action type="...">...</action></tool></tools>```
-   - ALWAYS use name="mcp" for the tool tag
+   - ALWAYS use name = "mcp" for the tool tag like <tool name="mcp">...</tool> 
    - Inside the tool must be exactly ONE <action> tag with type="use_mcp_tool" OR type="access_mcp_resource"
-   - The arguments attribute must be always be a JSON object with the required parameters for the tool call
-     e.g: %s
+   - When using the <action type="use_mcp_tool"></action> action: The following are a MUST
+     * The server_name child tag must be provided with a valid server name
+     * The tool_name child tag must be provided with a valid tool name of the server_name
+     * The arguments child tag must be always be a JSON object with the required parameters from the tool_name's inputSchema
+       e.g: %s
+   - When using the <action type="access_mcp_resource"></action> action: The following are a MUST
+     * The server_name child tag must be provided with a valid server name
+     * The uri attribute child tag be provided with a valid resource URI in the server_name
    - Except for optional attributes, ALL required parameters must be provided for actions.
 
 
