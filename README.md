@@ -231,7 +231,7 @@ require("mcphub").setup({
 		codecompanion = {
 			-- Show the mcp tool result in the chat buffer
 			-- NOTE:if the result is markdown with headers, content after the headers wont be sent by codecompanion
-			show_result_in_chat = true,
+			show_result_in_chat = false,
 			make_vars = true, -- make chat #variables from MCP server resources
 		},
 	},
