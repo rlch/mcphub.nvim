@@ -35,6 +35,7 @@ function M.setup(opts)
         port = 37373, -- Default port for MCP Hub
         config = vim.fn.expand("~/.config/mcphub/servers.json"), -- Default config location
         native_servers = {},
+        auto_approve = false,
         use_bundled_binary = false, -- Whether to use bundled mcp-hub binary
         cmd = "mcp-hub",
         cmdArgs = {},
@@ -70,6 +71,10 @@ function M.setup(opts)
     -- Override cmd if using bundled binary
     if config.use_bundled_binary then
         config.cmd = utils.get_bundled_mcp_path()
+    end
+
+    if config.auto_approve then
+        vim.g.mcphub_auto_approve = vim.g.mcphub_auto_approve == nil and true or vim.g.mcphub_auto_approve
     end
 
     -- Set up logging first

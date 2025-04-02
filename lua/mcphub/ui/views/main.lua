@@ -229,6 +229,13 @@ function MainView:setup_active_mode()
             },
         }
     end
+    self.keymaps["ga"] = {
+        action = function()
+            vim.g.mcphub_auto_approve = not vim.g.mcphub_auto_approve
+            self:draw()
+        end,
+        desc = "Toggle AutoApprove",
+    }
     self:apply_keymaps()
 end
 
@@ -416,8 +423,9 @@ function MainView:render_servers(line_offset)
     local lines = {}
     local current_line = line_offset
 
+    local width = self:get_width() - (Text.HORIZONTAL_PADDING * 2)
     -- Start with top-level MCP Servers header
-    local header_line = NuiLine():append("MCP Servers", Text.highlights.title)
+    local left_section = NuiLine():append("MCP Servers", Text.highlights.title)
 
     -- Add token count on MCP Servers section if connected
     if State.server_state.status == "connected" and State.hub_instance and State.hub_instance:is_ready() then
@@ -430,18 +438,34 @@ function MainView:render_servers(line_offset)
             local total_tokens = active_servers_tokens + use_mcp_tool_tokens + access_mcp_resource_tokens
 
             if total_tokens > 0 then
-                header_line:append(
+                left_section:append(
                     " (~ " .. utils.format_token_count(total_tokens) .. " tokens)",
                     Text.highlights.muted
                 )
             end
         end
     end
+    local is_auto_approve_enabled = vim.g.mcphub_auto_approve == true
+    local right_section = NuiLine()
+        :append(Text.icons.auto, is_auto_approve_enabled and Text.highlights.success or Text.highlights.muted)
+        :append(" Auto Approve: ", Text.highlights.muted)
+        :append(
+            is_auto_approve_enabled and "ON" or "OFF",
+            is_auto_approve_enabled and Text.highlights.success or Text.highlights.muted
+        )
+
+    -- Calculate padding needed between sections
+    local total_content_width = left_section:width() + right_section:width()
+    local padding = width - total_content_width
+
+    -- Combine sections with padding
+    local header_line = NuiLine():append(left_section):append(string.rep(" ", padding)):append(right_section)
+
     table.insert(lines, Text.pad_line(header_line))
     current_line = current_line + 1
     -- Track breadcrumb line for interaction
     self:track_line(current_line, "breadcrumb", {
-        hint = "Press <CR> to preview system prompts",
+        hint = "<CR> to preview servers prompt",
     })
     table.insert(lines, self:divider())
     current_line = current_line + 1

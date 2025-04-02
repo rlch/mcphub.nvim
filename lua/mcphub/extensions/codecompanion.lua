@@ -54,6 +54,17 @@ local tool_schema = {
                     data = table.concat(params.errors, "\n"),
                 }
             end
+            local auto_approve = (vim.g.mcphub_auto_approve == true) or (vim.g.codecompanion_auto_tool_mode == true)
+            if not auto_approve then
+                local utils = require("mcphub.extensions.utils")
+                local confirmed = utils.show_mcp_tool_prompt(params)
+                if not confirmed then
+                    return {
+                        status = "error",
+                        data = "User cancelled the operation",
+                    }
+                end
+            end
             if params.action == "use_mcp_tool" then
                 --use async call_tool method
                 hub:call_tool(params.server_name, params.tool_name, params.arguments, {
@@ -204,15 +215,6 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
         )
     end,
     output = {
-        ---Approve the command to be run
-        ---@param self CodeCompanion.Tools The tool object
-        ---@param agent table
-        ---@return string
-        prompt = function(self, agent)
-            local action = agent.request.action
-            local utils = require("mcphub.extensions.utils")
-            return utils.get_mcp_tool_prompt(parse_params(action))
-        end,
         rejected = function(self)
             local action = self.tool.request.action
             local action_name = action._attr.type

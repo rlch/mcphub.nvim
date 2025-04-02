@@ -16,6 +16,7 @@ M.highlights = hl.groups
 
 M.icons = {
 
+    auto = "󰁪",
     tower = "󰐻",
     tool = "",
     resourceTemplate = "",

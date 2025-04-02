@@ -223,10 +223,10 @@ require("mcphub").setup({
     config = vim.fn.expand("~/.config/mcphub/servers.json"),  -- Absolute path to config file location (will create if not exists)
     native_servers = {}, -- add your native servers here
 
+    auto_approve = false, -- Auto approve mcp tool calls 
     -- Extensions configuration
 	extensions = {
 		avante = {
-			auto_approve_mcp_tool_calls = false, -- Auto approves mcp tool calls.
 		},
 		codecompanion = {
 			-- Show the mcp tool result in the chat buffer
@@ -387,12 +387,11 @@ MCPHub.nvim provides extensions that integrate with popular Neovim chat plugins.
 
 Add MCP capabilities to Avante by including the MCP tool in your setup:
 
-> Set `auto_approve_mcp_tool_calls = true` to automatically approve mcp tool requests. 
+> Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to automatically approve mcp tool requests. 
 
 ```lua
 extensions = {
     avante = {
-        auto_approve_mcp_tool_calls = true, -- Auto approves mcp tool calls.
     }
 }
 ```
@@ -444,7 +443,7 @@ disabled_tools = {
 
 Add MCP capabilities to CodeCompanion.
 
-> Set `vim.g.codecompanion_auto_tool_mode = true` or use `gta` in the chat to automatically approve tool requests.
+> Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to automatically approve tool requests.
 
 > Set `make_vars = true` to show resources as #variables in the chat buffer
 
@@ -476,9 +475,6 @@ require("codecompanion").setup({
                     -- calling it in a function would prevent mcphub from being loaded before it's needed
                     callback = function() return require("mcphub.extensions.codecompanion") end,
                     description = "Call tools and resources from the MCP Servers",
-                    opts = {
-                        requires_approval = true,
-                    }
                 }
             }
         }

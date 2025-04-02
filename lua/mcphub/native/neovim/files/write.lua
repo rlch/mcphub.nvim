@@ -71,8 +71,18 @@ local function handle_write_file(req, res)
     -- Set content and mark as modified
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(req.params.contents, "\n"))
     vim.bo[bufnr].modified = true
+    -- Check if we should auto-approve
+    if vim.g.mcphub_auto_approve == true then
+        vim.cmd("write")
+        -- Return to original window if it's still valid
+        if vim.api.nvim_win_is_valid(current_win) then
+            vim.api.nvim_set_current_win(current_win)
+        end
+        res:text("Successfully written: " .. req.params.path):send()
+        return process_next_write()
+    end
 
-    -- Create diff view
+    -- Create diff view for manual approval
     if vim.api.nvim_win_get_width(target_win) < 70 then
         vim.cmd("split")
     else
@@ -108,7 +118,7 @@ local function handle_write_file(req, res)
             augroup_cleared = true
         end
         vim.schedule(function()
-            process_next_write()
+            return process_next_write()
         end)
     end
 
@@ -140,8 +150,8 @@ local function handle_write_file(req, res)
         end
         capture_changes()
         file_accepted = true
-        cleanup_diff()
         send_response(true)
+        cleanup_diff()
     end
 
     local function handle_reject()
@@ -149,10 +159,10 @@ local function handle_write_file(req, res)
             return
         end
         file_accepted = false
-        cleanup_diff()
         send_response(false)
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(original_content, "\n"))
         vim.cmd("write")
+        cleanup_diff()
     end
 
     -- Set up key mappings
@@ -185,7 +195,7 @@ end
 
 return {
     name = "write_file",
-    description = "Write content to a file (opens diff for review)",
+    description = "Write content to a file",
     inputSchema = {
         type = "object",
         properties = {
