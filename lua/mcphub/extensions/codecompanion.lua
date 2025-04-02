@@ -29,7 +29,7 @@ local function parse_params(action)
     if json_ok then
         arguments = decode_result or {}
     else
-        table.insert(errors, decode_result)
+        table.insert(errors, "vim.fn.json_decode ERROR: " .. decode_result)
         arguments = {}
     end
     return {
@@ -225,7 +225,7 @@ The Model Context Protocol (MCP) enables communication with locally running MCP 
         end,
         error = function(self, action, stderr)
             local action_name = action._attr.type
-            stderr = stderr or ""
+            stderr = stderr[1] or ""
             if type(stderr) == "table" then
                 stderr = vim.inspect(stderr)
             end

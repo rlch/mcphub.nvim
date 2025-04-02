@@ -19,4 +19,4 @@ for _, tool in ipairs(search_tools) do
 end
 
 mcphub.add_tool("neovim", write_tool)
--- mcphub.add_tool("neovim", replace_tool)
+mcphub.add_tool("neovim", replace_tool)

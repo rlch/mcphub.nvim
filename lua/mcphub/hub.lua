@@ -874,7 +874,7 @@ end
 
 function MCPHub:ensure_ready()
     if not self:is_ready() then
-        log.error("Server not ready. Make sure you call display after ensuring the mcphub is ready.")
+        log.warn("Hub is not ready.")
         return false
     end
     return true

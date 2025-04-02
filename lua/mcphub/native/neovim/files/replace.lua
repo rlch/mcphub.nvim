@@ -1,21 +1,5 @@
 local Path = require("plenary.path")
 
--- Queue to handle multiple replace requests
-local replace_queue = {}
-local is_processing = false
-
--- Function to process the next item in queue
-local function process_next_replace()
-    if #replace_queue == 0 then
-        is_processing = false
-        return
-    end
-
-    is_processing = true
-    local next_replace = table.remove(replace_queue, 1)
-    next_replace.handler(next_replace.req, next_replace.res)
-end
-
 -- Helper function to count diff blocks
 local function count_diff_blocks(diff_content)
     local count = 0
@@ -131,12 +115,12 @@ local function apply_diff_blocks(original_content, diff_content)
 end
 -- Core replace file logic
 local function handle_replace_file(req, res)
-    if not req.params.path or not req.params.diff then
+    if not req.params.path or not req.params.diff or req.params.diff == vim.NIL then
         return res:error("Missing required parameters: path and diff")
     end
-
     local p = Path:new(req.params.path)
     local path = p:absolute()
+    local diff = req.params.diff or ""
     -- Validate file existence
     local original_content = ""
     if p:exists() then
@@ -146,7 +130,7 @@ local function handle_replace_file(req, res)
         p:touch({ parents = true })
     end
     -- Parse and apply diff blocks
-    local new_content = apply_diff_blocks(original_content, req.params.diff)
+    local new_content = apply_diff_blocks(original_content, diff)
     if not new_content then
         return res:error("Failed to generate new content")
     end
@@ -157,6 +141,9 @@ local function handle_replace_file(req, res)
         return res:error("Invalid content generated")
     end
 
+    if new_content == original_content then
+        return res:text("No changes detected"):send()
+    end
     -- Save current window and get target window
     local current_win = vim.api.nvim_get_current_win()
     local target_win = current_win
@@ -194,6 +181,17 @@ local function handle_replace_file(req, res)
     -- Set content and mark as modified
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(new_content, "\n"))
     vim.bo[bufnr].modified = true
+    -- Check if we should auto-approve
+    if vim.g.mcphub_auto_approve == true then
+        vim.cmd("write")
+        -- Return to original window if it's still valid
+        if vim.api.nvim_win_is_valid(current_win) then
+            vim.api.nvim_set_current_win(current_win)
+        end
+        res:text("Successfully written: " .. path):send()
+        return
+    end
+
     -- Create split for diff view
     if vim.api.nvim_win_get_width(target_win) < 70 then
         vim.cmd("split")
@@ -231,9 +229,6 @@ local function handle_replace_file(req, res)
             pcall(vim.api.nvim_del_augroup_by_id, augroup)
             augroup_cleared = true
         end
-        vim.schedule(function()
-            process_next_replace()
-        end)
     end
 
     local function capture_changes()
@@ -250,7 +245,7 @@ local function handle_replace_file(req, res)
                 local msg = string.format(
                     "Successfully replaced content in: %s\nApplied %d change blocks",
                     path,
-                    count_diff_blocks(req.params.diff)
+                    count_diff_blocks(diff)
                 )
                 if changes_diff and changes_diff ~= "" then
                     msg = msg .. "\n\nUser made additional changes:\n```diff\n" .. changes_diff .. "\n```"
@@ -345,15 +340,43 @@ CRITICAL RULES:
      - Don't include long runs of unchanged lines
      - Always use complete lines, never partial lines
 
-  4. Special Cases:
-     - CRUCIAL: Empty SEARCH block is something with empty lines(\n) or whitespaces, ONLY use empty SEARCH block if you are sure the file is empty or you want to replace the entire file content
-     - To replace an empty line, the SEARCH block must contain a line with some content that is somewhere above or below the empty line to avoid replacing the entire file content
+  4. Common Use Cases:
+     - Appending content to end of file:
        <<<<<<< SEARCH
-       line with some content
-       
+       last line of file
        =======
-       line with some content
-       [new content]
+       last line of file
+       new content here
+       >>>>>>> REPLACE
+
+     - Inserting between lines:
+       <<<<<<< SEARCH
+       line above
+       line below
+       =======
+       line above
+       new content here
+       line below
+       >>>>>>> REPLACE
+
+     - Modifying specific line:
+       <<<<<<< SEARCH
+       old line content
+       =======
+       new line content
+       >>>>>>> REPLACE
+
+  5. Special Cases:
+     - CRUCIAL: Empty SEARCH block is something with empty lines(\n) or whitespaces, ONLY use empty SEARCH block if you are sure the file is empty or you want to replace the entire file content
+     - To replace an empty line, include unique context:
+       <<<<<<< SEARCH
+       line above
+       
+       line below
+       =======
+       line above
+       new content
+       line below
        >>>>>>> REPLACE
      - Empty SEARCH block in empty file: Creates new file with REPLACE content
      - Empty SEARCH block in non-empty file: Replaces entire file content
@@ -373,15 +396,5 @@ CRITICAL RULES:
         },
         required = { "path", "diff" },
     },
-    handler = function(req, res)
-        table.insert(replace_queue, {
-            req = req,
-            res = res,
-            handler = handle_replace_file,
-        })
-
-        if not is_processing then
-            process_next_replace()
-        end
-    end,
+    handler = handle_replace_file,
 }

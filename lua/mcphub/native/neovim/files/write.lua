@@ -1,28 +1,13 @@
 local Path = require("plenary.path")
 
--- Queue to handle multiple write requests
-local write_queue = {}
-local is_processing = false
-
--- Function to process the next item in queue
-local function process_next_write()
-    if #write_queue == 0 then
-        is_processing = false
-        return
-    end
-
-    is_processing = true
-    local next_write = table.remove(write_queue, 1)
-    next_write.handler(next_write.req, next_write.res)
-end
-
 -- Core write file logic
 local function handle_write_file(req, res)
-    if not req.params.path or not req.params.contents then
+    if not req.params.path or not req.params.contents or req.params.contents == vim.NIL then
         return res:error("Missing required parameters: path and contents")
     end
     local p = Path:new(req.params.path)
     local path = p:absolute()
+    local contents = req.params.contents or ""
 
     -- Ensure parent directories exist
     p:touch({ parents = true })
@@ -69,7 +54,7 @@ local function handle_write_file(req, res)
     vim.api.nvim_buf_set_option(bufnr, "buflisted", true)
 
     -- Set content and mark as modified
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(req.params.contents, "\n"))
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(contents, "\n"))
     vim.bo[bufnr].modified = true
     -- Check if we should auto-approve
     if vim.g.mcphub_auto_approve == true then
@@ -78,8 +63,8 @@ local function handle_write_file(req, res)
         if vim.api.nvim_win_is_valid(current_win) then
             vim.api.nvim_set_current_win(current_win)
         end
-        res:text("Successfully written: " .. req.params.path):send()
-        return process_next_write()
+        res:text("Successfully written: " .. path):send()
+        return
     end
 
     -- Create diff view for manual approval
@@ -117,14 +102,11 @@ local function handle_write_file(req, res)
             pcall(vim.api.nvim_del_augroup_by_id, augroup)
             augroup_cleared = true
         end
-        vim.schedule(function()
-            return process_next_write()
-        end)
     end
 
     local function capture_changes()
         local current_content = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-        changes_diff = vim.diff(req.params.contents, current_content, {
+        changes_diff = vim.diff(contents, current_content, {
             result_type = "unified",
         })
     end
@@ -133,13 +115,13 @@ local function handle_write_file(req, res)
         if not response_sent then
             response_sent = true
             if accepted then
-                local msg = "Successfully written: " .. req.params.path
+                local msg = "Successfully written: " .. path
                 if changes_diff and changes_diff ~= "" then
                     msg = msg .. "\n\nUser-made the following changes:\n```diff\n" .. changes_diff .. "\n```"
                 end
                 res:text(msg):send()
             else
-                res:text("User rejected the file changes: " .. req.params.path):send()
+                res:text("User rejected the file changes: " .. path):send()
             end
         end
     end
@@ -210,15 +192,5 @@ return {
         },
         required = { "path", "contents" },
     },
-    handler = function(req, res)
-        table.insert(write_queue, {
-            req = req,
-            res = res,
-            handler = handle_write_file,
-        })
-
-        if not is_processing then
-            process_next_write()
-        end
-    end,
+    handler = handle_write_file,
 }
