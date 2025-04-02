@@ -260,8 +260,8 @@ require("mcphub").setup({
 
     --WARN: Use the custom setup if you can't use `npm install -g mcp-hub` or cant have `build = "bundled_build.lua"`
     -- Custom Server command configuration 
-    cmd = "node", -- The command to invoke the MCP Hub Server
-    cmdArgs = {"/path/to/node_modules/mcp-hub/dist/cli.js"},    -- Additional arguments for the command
+    --cmd = "node", -- The command to invoke the MCP Hub Server
+    --cmdArgs = {"/path/to/node_modules/mcp-hub/dist/cli.js"},    -- Additional arguments for the command
 
     -- Common command configurations (when not using bundled binary):
     -- 1. Global installation (default):
