@@ -336,6 +336,7 @@ function MainView:render_hub_status()
         connected = "Connected",
         connecting = "Connecting...",
         disconnected = "Disconnected",
+        restarting = "Restarting...",
     })[State.server_state.status] or "Unknown", status.hl)
 
     if State.server_state.started_at then

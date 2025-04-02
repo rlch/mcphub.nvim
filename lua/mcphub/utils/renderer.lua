@@ -14,6 +14,7 @@ function M.get_server_status_info(status, expanded)
         icon = ({
             connected = (expanded and Text.icons.triangleDown or Text.icons.triangleRight) .. " ",
             connecting = "◉ ",
+            restarting = "◉ ",
             disconnecting = "○ ",
             disconnected = "○ ",
             disabled = "○ ",
@@ -27,6 +28,7 @@ function M.get_server_status_info(status, expanded)
         hl = ({
             connected = Text.highlights.success,
             connecting = Text.highlights.success,
+            restarting = Text.highlights.success,
             disconnecting = Text.highlights.warning,
             disconnected = Text.highlights.warning,
             disabled = Text.highlights.muted,

@@ -145,7 +145,7 @@ end
 
 --- Handle server ready state
 --- @param opts? { on_ready: function, on_error: function }
-function MCPHub:handle_server_ready(opts)
+function MCPHub:handle_server_ready(opts, is_restarting)
     self.ready = true
     opts = opts or {}
 
@@ -176,28 +176,31 @@ function MCPHub:handle_server_ready(opts)
                 }, "server")
                 self:handle_servers_updated()
 
-                -- Register client
-                self:register_client({
-                    callback = function(response, reg_err)
-                        if reg_err then
-                            local err = Error("SERVER", Error.Types.SERVER.CONNECTION, "Client registration failed", {
-                                error = reg_err,
-                            })
-                            State:add_error(err)
-                            if opts.on_error then
-                                opts.on_error(tostring(err))
+                if not is_restarting then
+                    -- Register client
+                    self:register_client({
+                        callback = function(response, reg_err)
+                            if reg_err then
+                                local err =
+                                    Error("SERVER", Error.Types.SERVER.CONNECTION, "Client registration failed", {
+                                        error = reg_err,
+                                    })
+                                State:add_error(err)
+                                if opts.on_error then
+                                    opts.on_error(tostring(err))
+                                end
+                                return
                             end
-                            return
-                        end
 
-                        -- Fetch marketplace catalog after successful registration
-                        self:get_marketplace_catalog()
+                            -- Fetch marketplace catalog after successful registration
+                            self:get_marketplace_catalog()
 
-                        if opts.on_ready then
-                            opts.on_ready(self)
-                        end
-                    end,
-                })
+                            if opts.on_ready then
+                                opts.on_ready(self)
+                            end
+                        end,
+                    })
+                end
             end
         end,
     })
@@ -828,15 +831,45 @@ function MCPHub:restart(callback)
     if not self:ensure_ready() then
         return
     end
-    if self.is_owner then
-        self:stop()
-        State:reset()
-        self:start(nil, callback)
-    else
-        vim.notify("Only the owner can restart the server", vim.log.levels.INFO)
-        self:refresh()
-        callback(true)
-    end
+
+    State:update({
+        errors = {
+            items = {},
+        },
+        server_output = {
+            entries = {},
+        },
+        server_state = {
+            status = "restarting",
+        },
+    }, "server")
+    self:emit_update({
+        status = "restarting",
+        active_servers = 0,
+        total_tools = 0,
+        total_resources = 0,
+    })
+    self:api_request("POST", "restart", {
+        body = {
+            clientId = self.client_id,
+        },
+        callback = function(response, err)
+            if err then
+                local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Restart failed", {
+                    error = err,
+                })
+                State:add_error(health_err)
+                if callback then
+                    callback(false)
+                end
+                return
+            end
+            self:handle_server_ready(nil, true)
+            if callback then
+                callback(true)
+            end
+        end,
+    })
 end
 
 function MCPHub:ensure_ready()
