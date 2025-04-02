@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2025-04-02
+
+### Deprecated
+
+- Deprecated Avante's auto_approve_mcp_tool_calls setting in favor of global config.auto_approve
+- Deprecated CodeCompanion's opts.requires_approval setting in favor of global config.auto_approve
+
+### Added
+
+- Added global auto-approve control through vim.g.mcphub_auto_approve and config.auto_approve
+- Added UI toggle (ga) for auto-approve in main view
+- Added auto-approve support in write_file tool while maintaining editor visibility
+
+### Changed
+
+- Unified auto-approve handling across the plugin
+- Moved auto-approve settings from extensions to core config
+- Updated Avante and CodeCompanion extensions to use global auto-approve setting
+- Updated documentation to reflect new auto-approve configuration
+
 ## [4.1.1] - 2025-04-02
 
 ### Changed
