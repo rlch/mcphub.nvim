@@ -17,6 +17,8 @@ function PromptsHandler:new(server_name, capability_info, view)
     return handler
 end
 
+function PromptsHandler:handle_action() end
+
 function PromptsHandler:render(line_offset)
     line_offset = line_offset or 0
     self:clear_line_tracking()
