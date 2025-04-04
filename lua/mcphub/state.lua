@@ -260,8 +260,8 @@ function State:add_server_output(entry)
     end
 
     self:notify_subscribers({
-        server_output = true,
-    }, "server")
+        logs = true,
+    }, "logs")
 end
 
 function State:subscribe(callback, types)

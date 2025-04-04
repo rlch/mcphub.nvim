@@ -86,7 +86,16 @@ function UI:new(opts)
                     or k == "logs"
                     or k == "errors"
                 then
-                    should_update = true
+                    --if connected then only update the logs view for logs updates
+                    if k == "logs" and State.server_state.status == "connected" then
+                        if instance.current_view == "logs" then
+                            should_update = true
+                        else
+                            should_update = false
+                        end
+                    else
+                        should_update = true
+                    end
                     break
                 end
             end
@@ -94,7 +103,7 @@ function UI:new(opts)
                 instance:render()
             end
         end
-    end, { "ui", "server", "setup", "errors", "marketplace" })
+    end, { "ui", "server", "logs", "setup", "errors", "marketplace" })
 
     -- Create cleanup autocommands
     local group = vim.api.nvim_create_augroup("mcphub_ui", { clear = true })
