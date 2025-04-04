@@ -186,7 +186,7 @@ Core Functions:                                            *mcphub-functions*
     })
 
     -- Get prompt helpers for system prompts
-    local prompts = hub:get_prompts({
+    local prompts = hub:generate_prompts({
         use_mcp_tool_example = "...",
         access_mcp_resource_example = "..."
     })

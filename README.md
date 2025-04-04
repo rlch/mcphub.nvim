@@ -133,8 +133,9 @@ Thank you to the following amazing people:
 - Create Lua-based MCP servers directly in Neovim ([detailed guide](lua/mcphub/native/NATIVE_SERVER_LLM.md))
 - Automatically create lua native MCP servers using LLMs with built-in templates
 - Write once, use everywhere design
-- Clean chained API for tools and resources
+- Clean chained API for tools, resources, and prompts
 - Full URI-based resource system with templates
+- Chat-style prompts with role management
 - Centralized lifecycle management
 </details>
 
@@ -142,22 +143,24 @@ Thank you to the following amazing people:
 <summary><strong>Built-in MCP Servers</strong></summary>
 
 - **Neovim Server**: Pre-configured with essential development tools
-  - File operations (read, write, search, replace)
-  - Command execution and terminal integration
-  - LSP integration with diagnostics
-  - Buffer and environment access
-  - Can be disabled if not needed
+- File operations (read, write, search, replace)
+- Command execution and terminal integration
+- LSP integration with diagnostics
+- Buffer and environment access
+- Interactive chat prompts
+- Can be disabled if not needed
 </details>
+
 
 <details>
 <summary><strong>Chat Plugin Integration</strong></summary>
 
 - Deep integration with popular Neovim chat plugins:
   - Avante.nvim: Full MCP tool support with auto-approval option
-  - CodeCompanion.nvim: MCP resources as chat variables
+  - CodeCompanion.nvim: MCP resources as chat variables and slash commands for prompts
   - Real-time variable updates when servers change
-  - Automatic resource syncing across plugins
-  - Example: LSP diagnostics as chat variables
+  - Automatic resource syncing and prompt registration
+  - Example: MCP resources as chat variables, prompts as slash_commands
 </details>
 
 <details>
@@ -233,6 +236,7 @@ require("mcphub").setup({
 			-- NOTE:if the result is markdown with headers, content after the headers wont be sent by codecompanion
 			show_result_in_chat = false,
 			make_vars = true, -- make chat #variables from MCP server resources
+            make_slash_commands = true, -- make /slash commands from MCP server prompts
 		},
 	},
 
@@ -367,7 +371,7 @@ local hub = mcphub.get_hub_instance()
       })
 
 -- Get prompt helpers for system prompts
-local prompts = hub:get_prompts()
+local prompts = hub:generate_prompts()
 -- prompts.active_servers: Lists currently active servers
 -- prompts.use_mcp_tool: Instructions for tool usage with example
 -- prompts.access_mcp_resource: Instructions for resource access with example
@@ -447,7 +451,14 @@ Add MCP capabilities to CodeCompanion.
 
 > Set `make_vars = true` to show resources as #variables in the chat buffer
 
-* Whenever the servers are updated, the variables will also be updated in realtime
+> Set `make_slash_commands = true` to show prompts as /slash_commands in the chat buffer
+
+- Server prompts become available as `/mcp:prompt_name` commands in chat
+- Prompts with arguments  are handled using vim.ui.input 
+- If the last message is of `user` role, it will be added to the chat buffer. 
+- You can create your own prompt just like other capabilities with `mcphub.add_prompt` or by adding a native server to `config.native_server`.
+
+* Whenever the servers are updated, the variables and slash_commands will also be updated in realtime
 ![image](https://github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a)
 
 * E.g LSP current file diagnostics
@@ -462,6 +473,7 @@ extensions = {
         -- NOTE:if the result is markdown with headers, content after the headers wont be sent by codecompanion
         show_result_in_chat = true,
         make_vars = true, -- make chat #variables from MCP server resources
+        make_slash_commands = true, -- make /slash_commands from MCP server prompts
     },
 }
 ```
@@ -626,7 +638,26 @@ native_servers = {
                            "Wed: 🌧️ 18°C"):send()
                 end
             }
-        }
+        },
+        prompts = {
+            name = "weather_chat",
+            description = "Chat about weather in any city",
+            arguments = {
+                {
+                    name = "city",
+                    description = "City to check weather for"
+                }
+            },
+            handler = function(req, res)
+                return res
+                :user()
+                :text(string.format("What's the weather like in %s?", req.params.city))
+                :llm()
+                :text(string.format("Let me check the weather in %s for you...", req.params.city)):text(string.format("The weather in %s is ☀️ 22°C. Perfect day for outdoor activities!", req.params.city))
+                    
+                res:send()
+            end
+}
     }
   }
 }
@@ -641,61 +672,22 @@ local mcphub = require("mcphub")
 
 -- Start by adding a tool. It iwll create the server if it is not already present.
 mcphub.add_tool("weather", {
-    name = "get_weather",
-    description = "Get current weather for a city",
-    inputSchema = {
-        type = "object",
-        properties = {
-            city = {
-                type = "string",
-                description = "City name",
-                examples = ["London", "New York"],
-            },
-        },
-    },
-    handler = function(req, res)
-        -- Simulate weather API call
-        local weather_data = {
-            London = { temp = 22, condition = "☀️" },
-            ["New York"] = { temp = 25, condition = "⛅" },
-        }
-        local city_data = weather_data[req.params.city]
-        
-        if city_data then
-            res:text(string.format(
-                "Weather in %s: %s %d°C",
-                req.params.city,
-                city_data.condition,
-                city_data.temp
-            )):send()
-        else
-            res:error("City not found")
-        end
-    end,
+  --tool def
 })
 
 -- Add a static resource for London weather
 mcphub.add_resource("weather", {
-    name = "london_weather",
-    uri = "weather://current/london",
-    description = "Current London weather",
-    handler = function(req, res)
-        res:text("London: ☀️ 22°C"):send()
-    end,
+  --resource def
 })
 
 -- Add a template for any city
 mcphub.add_resource_template("weather", {
-    name = "city_weather",
-    uriTemplate = "weather://current/{city}",
-    description = "Get weather for any city",
-    handler = function(req, res)
-        if req.params.city == "London" then
-            return res:text("London: ☀️ 22°C"):send()
-        else
-            return res:text(req.params.city .. ": ⛅ 20°C"):send()
-        end
-    end,
+  --resource template def
+})
+
+-- Add a prompt
+mcphub.add_prompt({
+    --prompt def
 })
 ```
 
@@ -709,7 +701,7 @@ Preview:
 > Please read [Native README.md](https://github.com/ravitemer/mcphub.nvim/blob/native-servers/lua/mcphub/native/README.md) (beta) for more information.
 
 MCPHub acts as a central hub that:
-1. **Collects Tools & Resources**: Gathers capabilities from both native and community servers
+1. **Collects Tools, Resources, Prompts**: Gathers capabilities from both native and community servers
 2. **Standardizes Access**: Provides a single interface via `@mcp` tool
 3. **Manages State**: Handles server lifecycles and capability registration
 4. **Formats Prompts**: Transforms complex tool definitions into LLM-friendly formats
