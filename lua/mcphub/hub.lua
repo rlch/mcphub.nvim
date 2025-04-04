@@ -27,18 +27,6 @@ local RESOURCE_TIMEOUT = 30000 -- 30s for resource access
 local MCPHub = {}
 MCPHub.__index = MCPHub
 
-local function url_encode(str)
-    if type(str) ~= "number" then
-        str = str:gsub("\r?\n", "\r\n")
-        str = str:gsub("([^%w%-%.%_%~ ])", function(c)
-            return string.format("%%%02X", c:byte())
-        end)
-        str = str:gsub(" ", "+")
-        return str
-    else
-        return str
-    end
-end
 --- Create a new MCPHub instance
 --- @param opts table Configuration options
 --- @return MCPHub Instance of MCPHub
@@ -266,14 +254,6 @@ function MCPHub:get_health(opts)
     return self:api_request("GET", "health", opts)
 end
 
---- Get server information if available
---- @param name string Server name
---- @param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
---- @return table|nil, string|nil If no callback is provided, returns response and error
-function MCPHub:get_server_info(name, opts)
-    return self:api_request("GET", string.format("servers/%s/info", url_encode(name)), opts)
-end
-
 --- Start a disabled/disconnected MCP server
 ---@param name string Server name to start
 ---@param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
@@ -307,7 +287,10 @@ function MCPHub:start_mcp_server(name, opts)
         end
 
         -- Call start endpoint
-        self:api_request("POST", string.format("servers/%s/start", url_encode(name)), {
+        self:api_request("POST", "servers/start", {
+            body = {
+                server_name = name,
+            },
             callback = function(response, err)
                 self:refresh()
                 if opts.callback then
@@ -361,10 +344,13 @@ function MCPHub:stop_mcp_server(name, disable, opts)
             }, "server")
         end
         -- Call stop endpoint
-        self:api_request("POST", string.format("servers/%s/stop", url_encode(name)), {
+        self:api_request("POST", "servers/stop", {
             query = disable and {
                 disable = "true",
             } or nil,
+            body = {
+                server_name = name,
+            },
             callback = function(response, err)
                 self:refresh()
                 if opts.callback then
@@ -435,10 +421,11 @@ function MCPHub:get_prompt(server_name, prompt_name, args, opts)
 
     local response, err = self:api_request(
         "POST",
-        string.format("servers/%s/prompts", url_encode(server_name)),
+        "servers/prompts",
         vim.tbl_extend("force", {
             timeout = opts.timeout or TOOL_TIMEOUT,
             body = {
+                server_name = server_name,
                 prompt = prompt_name,
                 arguments = arguments,
             },
@@ -512,10 +499,11 @@ function MCPHub:call_tool(server_name, tool_name, args, opts)
 
     local response, err = self:api_request(
         "POST",
-        string.format("servers/%s/tools", url_encode(server_name)),
+        "servers/tools",
         vim.tbl_extend("force", {
             timeout = opts.timeout or TOOL_TIMEOUT,
             body = {
+                server_name = server_name,
                 tool = tool_name,
                 arguments = arguments,
             },
@@ -581,10 +569,11 @@ function MCPHub:access_resource(server_name, uri, opts)
     -- Otherwise proxy to MCP server
     local response, err = self:api_request(
         "POST",
-        string.format("servers/%s/resources", url_encode(server_name)),
+        "servers/resources",
         vim.tbl_extend("force", {
             timeout = opts.timeout or RESOURCE_TIMEOUT,
             body = {
+                server_name = server_name,
                 uri = uri,
             },
         }, opts)
