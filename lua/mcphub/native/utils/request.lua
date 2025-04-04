@@ -18,6 +18,26 @@ function ToolRequest:new(opts)
     return setmetatable(instance, self)
 end
 
+---@class PromptRequest
+---@field params table<string, string> Template parameters from URI
+---@field prompt MCPPrompt Complete prompt definition including dynamic fields
+---@field server NativeServer Server instance
+---@field caller table Additional context from caller
+---@field editor_info EditorInfo Current editor state
+
+local PromptRequest = {}
+PromptRequest.__index = PromptRequest
+function PromptRequest:new(opts)
+    local instance = {
+        server = opts.server,
+        params = opts.arguments, -- Template params
+        prompt = opts.prompt, -- Store resource definition
+        caller = opts.caller or {},
+        editor_info = opts.editor_info,
+    }
+    return setmetatable(instance, self)
+end
+
 ---@class ResourceRequest
 ---@field params table<string, string> Template parameters from URI
 ---@field uri string Complete requested URI
@@ -45,4 +65,5 @@ end
 return {
     ToolRequest = ToolRequest,
     ResourceRequest = ResourceRequest,
+    PromptRequest = PromptRequest,
 }

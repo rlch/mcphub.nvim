@@ -51,6 +51,7 @@ function M.render_cap_section(items, title, server_name, type, current_line)
         tool = Text.icons.tool,
         resource = Text.icons.resource,
         resourceTemplate = Text.icons.resourceTemplate,
+        prompt = Text.icons.prompt,
     }
     table.insert(
         lines,
@@ -84,6 +85,8 @@ function M.render_cap_section(items, title, server_name, type, current_line)
             is_disabled = vim.tbl_contains(server_config.disabled_resources or {}, item.uri)
         elseif type == "resourceTemplate" then
             is_disabled = vim.tbl_contains(server_config.disabled_resourceTemplates or {}, item.uriTemplate)
+        elseif type == "prompt" then
+            is_disabled = vim.tbl_contains(server_config.disabled_prompts or {}, item.name)
         end
 
         local line = NuiLine()
@@ -105,6 +108,8 @@ function M.render_cap_section(items, title, server_name, type, current_line)
             hint = is_disabled and "Press 't' to enable resource" or "Press <CR> to access resource, 't' to disable"
         elseif type == "resourceTemplate" then
             hint = is_disabled and "Press 't' to enable template" or "Press <CR> to access template, 't' to disable"
+        elseif type == "prompt" then
+            hint = is_disabled and "Press 't' to enable prompt" or "Press <CR> to use prompt, 't' to disable"
         end
 
         table.insert(mappings, {
@@ -186,6 +191,16 @@ function M.render_server_capabilities(server, lines, current_line, config_source
         table.insert(lines, Text.empty_line())
         current_line = current_line + 1
 
+        if #server.capabilities.prompts > 0 then
+            local section_lines, new_line, mappings =
+                M.render_cap_section(server.capabilities.prompts, "Prompts", server.name, "prompt", current_line)
+            vim.list_extend(lines, section_lines)
+            for _, m in ipairs(mappings) do
+                view:track_line(m.line, m.type, m.context)
+            end
+            table.insert(lines, Text.empty_line())
+            current_line = new_line + 1
+        end
         -- Tools section if any
         if #server.capabilities.tools > 0 then
             local section_lines, new_line, mappings =
@@ -264,7 +279,7 @@ function M.render_server_line(server, active)
 
         -- Helper to render capability count with active/total
         local function render_capability_count(capabilities, disabled_list, id_field, icon, highlight)
-            if #capabilities > 0 then
+            if capabilities and #capabilities > 0 then
                 local current_ids = vim.tbl_map(function(cap)
                     return cap[id_field]
                 end, capabilities)
@@ -282,33 +297,34 @@ function M.render_server_line(server, active)
             end
         end
 
-        if #server.capabilities.tools > 0 then
-            render_capability_count(
-                server.capabilities.tools,
-                server_config.disabled_tools,
-                "name",
-                Text.icons.tool,
-                Text.highlights.info
-            )
-        end
-        if #server.capabilities.resources > 0 then
-            render_capability_count(
-                server.capabilities.resources,
-                server_config.disabled_resources,
-                "uri",
-                Text.icons.resource,
-                Text.highlights.warning
-            )
-        end
-        if #server.capabilities.resourceTemplates > 0 then
-            render_capability_count(
-                server.capabilities.resourceTemplates,
-                server_config.disabled_resourceTemplates,
-                "uriTemplate",
-                Text.icons.resourceTemplate,
-                Text.highlights.error
-            )
-        end
+        render_capability_count(
+            server.capabilities.prompts,
+            server_config.disabled_prompts,
+            "name",
+            Text.icons.prompt,
+            Text.highlights.muted
+        )
+        render_capability_count(
+            server.capabilities.tools,
+            server_config.disabled_tools,
+            "name",
+            Text.icons.tool,
+            Text.highlights.info
+        )
+        render_capability_count(
+            server.capabilities.resources,
+            server_config.disabled_resources,
+            "uri",
+            Text.icons.resource,
+            Text.highlights.warning
+        )
+        render_capability_count(
+            server.capabilities.resourceTemplates,
+            server_config.disabled_resourceTemplates,
+            "uriTemplate",
+            Text.icons.resourceTemplate,
+            Text.highlights.error
+        )
     end
 
     -- Add status description if any

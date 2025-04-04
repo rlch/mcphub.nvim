@@ -4,7 +4,7 @@
 ---@field add_tool fun(server_name: string, tool_def: MCPTool): NativeServer|nil Add tool to server
 ---@field add_resource fun(server_name: string, resource_def: MCPResource): NativeServer|nil Add resource to server
 ---@field add_resource_template fun(server_name: string, template_def: MCPResourceTemplate): NativeServer|nil Add template to server
-
+---@field add_prompt fun(server_name: string, prompt_def: MCPPrompt): NativeServer|nil Add prompt to server
 local Error = require("mcphub.utils.errors")
 local NativeServer = require("mcphub.native.utils.server")
 local State = require("mcphub.state")
@@ -87,6 +87,7 @@ function Native.add_server(server_name, def)
             tools = {},
             resources = {},
             resourceTemplates = {},
+            prompts = {},
         },
     }, def or {})
     --make sure the server name is same as the key
@@ -158,6 +159,27 @@ function Native.add_resource_template(server_name, template_def)
     else
         return Native.add_server(server_name, {
             capabilities = { resourceTemplates = { template_def } },
+        })
+    end
+end
+--- Add a prompt to a server, creating the server if it doesn't exist
+---@param server_name string Name of the server
+---@param prompt_def MCPPrompt Prompt definition including name and handler
+---@return NativeServer|nil server The server instance or nil on error
+function Native.add_prompt(server_name, prompt_def)
+    local result = validate.validate_prompt(prompt_def)
+    if not result.ok then
+        handle_error(result.error)
+        return nil
+    end
+
+    local server = Native.is_native_server(server_name)
+    if server then
+        table.insert(server.capabilities.prompts, prompt_def)
+        return server
+    else
+        return Native.add_server(server_name, {
+            capabilities = { prompts = { prompt_def } },
         })
     end
 end

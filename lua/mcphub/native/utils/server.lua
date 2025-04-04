@@ -16,6 +16,18 @@ local log = require("mcphub.utils.log")
 ---@field mimeType? string Resource MIME type (e.g., "text/plain")
 ---@field uri string Static URI (e.g., "system://info")
 ---@field handler fun(req: ResourceRequest, res: ResourceResponse): nil | table Resource handler function
+---
+
+---@class MCPPromptArgument
+---@field name string Argument name
+---@field description? string Argument description
+---@field required? boolean Whether the argument is required
+---@field default? string Default value for the argument
+
+---@class MCPPrompt
+---@field name? string Prompt identifier
+---@field description? string|fun():string Prompt description or function returning description
+---@field arguments? MCPPromptArgument[]|fun():MCPPromptArgument[] List of arguments
 
 ---@class MCPResourceTemplate
 ---@field name? string Template identifier
@@ -28,6 +40,7 @@ local log = require("mcphub.utils.log")
 ---@field tools? MCPTool[] List of tools
 ---@field resources? MCPResource[] List of resources
 ---@field resourceTemplates? MCPResourceTemplate[] List of resource templates
+---@field prompts? MCPPrompt[] List of prompts
 
 ---@class NativeServer
 ---@field name string Server name
@@ -131,6 +144,7 @@ function NativeServer:new(def)
             tools = {},
             resources = {},
             resourceTemplates = {},
+            prompts = {},
         },
         uptime = 0,
         lastStarted = os.time(),
@@ -152,6 +166,7 @@ function NativeServer:initialize(def)
         tools = def.capabilities.tools or {},
         resources = def.capabilities.resources or {},
         resourceTemplates = def.capabilities.resourceTemplates or {},
+        prompts = def.capabilities.prompts or {},
     }
 
     -- Get server config
@@ -163,6 +178,83 @@ function NativeServer:initialize(def)
     end
     self.status = "connected"
     self.lastStarted = os.time()
+end
+
+function NativeServer:get_prompt(name, arguments, opts)
+    opts = opts or {}
+    -- Create output handler
+    local got_prompt = false
+    local prompt_result, prompt_error
+    local function output_handler(result, err)
+        if got_prompt then
+            return
+        end
+        prompt_result = result
+        prompt_error = err
+        got_prompt = true
+        if opts.callback then
+            opts.callback(result, err)
+            return
+        end
+        return result, err
+    end
+    log.debug(string.format("Getting prompt '%s' on server '%s'", name, self.name))
+    -- Check server state
+    if self.status ~= "connected" then
+        local err = string.format("Server '%s' is not connected (status: %s)", self.name, self.status)
+        log.warn(string.format("Server '%s' is not connected (status: %s)", self.name, self.status))
+        return output_handler(nil, err)
+    end
+
+    -- Find tool in capabilities
+    local prompt
+    for _, p in ipairs(self.capabilities.prompts) do
+        if p.name == name then
+            prompt = p
+            break
+        end
+    end
+    if not prompt then
+        local err = string.format("Prompt '%s' not found", name)
+        log.warn(string.format("Prompt '%s' not found", name))
+        return output_handler(nil, err)
+    end
+
+    local editor_info = buf_utils.get_editor_info()
+    -- Create req/res objects with full context
+    local req = Request.PromptRequest:new({
+        server = self,
+        prompt = prompt,
+        arguments = arguments,
+        caller = opts.caller,
+        editor_info = editor_info,
+    })
+    local res = Response.PromptResponse:new(output_handler, prompt.name, prompt.description)
+
+    -- Execute tool with req/res
+    local ok, result = pcall(prompt.handler, req, res)
+    if not ok then
+        log.warn(string.format("Tool execution failed: %s", result))
+        return res:error(result)
+    end
+
+    -- Handle synchronous return if any
+    if result ~= nil then
+        return output_handler(result)
+    end
+    -- If native_server:get_prompt is a synchronous call but the handler didn't return anything or is running asynchronously given the res:send() arch
+    -- Wait for the handler to finish until TIMEOUT as if the user didn't call res:send() this will never finish
+    -- The only place the nativeserver is called synchronously is while a chat resolving  prompt
+    local start_time = os.time()
+    if not opts.callback then
+        while not got_prompt do
+            vim.wait(500)
+            if os.time() - start_time > TIMEOUT then
+                return output_handler(nil, "Prompt access timed out")
+            end
+        end
+        return prompt_result, prompt_error
+    end
 end
 
 --- Execute a tool by name
@@ -233,9 +325,9 @@ function NativeServer:call_tool(name, arguments, opts)
     if result ~= nil then
         return output_handler(result)
     end
-    -- If native_server:call_tool is a synchronous call but the handler didn't return anything or is running asynchronously given the res:send() arch
-    -- Wait for the handler to finish until TIMEOUT as if the user didn't call res:send() this will never finish
-    -- The only place the nativeserver is called synchronously is while a chat resolving #resource variable in the chat when submitted
+    -- -- If native_server:call_tool is a synchronous call but the handler didn't return anything or is running asynchronously given the res:send() arch
+    -- -- Wait for the handler to finish until TIMEOUT as if the user didn't call res:send() this will never finish
+    -- -- The only place the nativeserver is called synchronously is while a chat resolving #resource variable in the chat when submitted
     local start_time = os.time()
     if not opts.callback then
         while not tool_finished do

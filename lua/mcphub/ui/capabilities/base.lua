@@ -193,6 +193,8 @@ function CapabilityHandler:open_text_box(title, content, on_save)
 
     vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(bufnr), 0 })
     update_virtual_text() -- Show initial hint
+    --start insert mode
+    vim.cmd("startinsert")
 end
 
 -- Common section rendering utilities
@@ -212,41 +214,39 @@ function CapabilityHandler:render_section_content(content, indent_level)
     local padding = string.rep(" ", indent_level or 1)
     for _, line in ipairs(content) do
         local rendered_line = NuiLine()
-        if type(line) == "string" then
-            rendered_line:append("│", highlights.muted):append(padding, highlights.muted):append(line)
-        else
-            rendered_line:append("│", highlights.muted):append(padding, highlights.muted):append(line)
-        end
+        rendered_line:append("│", highlights.muted):append(padding, highlights.muted):append(line)
         table.insert(lines, Text.pad_line(rendered_line))
     end
     return lines
 end
 
-function CapabilityHandler:render_section_end()
-    return { Text.pad_line(NuiLine():append("╰─", highlights.muted)) }
+function CapabilityHandler:render_section_end(content, indent_level)
+    local lines = {}
+    local padding = string.rep(" ", indent_level or 1)
+    if content then
+        for _, line in ipairs(content) do
+            local rendered_line = NuiLine()
+            rendered_line:append("╰─", highlights.muted):append(padding, highlights.muted):append(line)
+            table.insert(lines, Text.pad_line(rendered_line))
+        end
+    else
+        table.insert(lines, Text.pad_line(NuiLine():append("╰─", highlights.muted)))
+    end
+    return lines
 end
 
--- Common result rendering
-function CapabilityHandler:render_result()
-    if not self.state.result then
-        return {}
-    end
-
+function CapabilityHandler:render_output(output)
     local lines = {}
-    table.insert(lines, Text.pad_line(NuiLine())) -- Empty line
-    vim.list_extend(lines, self:render_section_start("Result"))
-
-    -- Handle text content
-    if self.state.result.text and self.state.result.text ~= "" then
-        vim.list_extend(lines, self:render_section_content(Text.multiline(self.state.result.text, highlights.info), 1))
+    --Handle text content
+    if output.text and output.text ~= "" then
+        vim.list_extend(lines, self:render_section_content(Text.multiline(output.text, highlights.info), 1))
     end
-
     -- Handle image content
-    if self.state.result.images and #self.state.result.images > 0 then
+    if output.images and #output.images > 0 then
         if #lines > 0 then
             vim.list_extend(lines, self:render_section_content({ "  " }, 1))
         end
-        for i, img in ipairs(self.state.result.images) do
+        for i, img in ipairs(output.images) do
             -- Save to temp file
             local ok, filepath = pcall(ImageCache.save_image, img.data, img.mimeType or "application/octet-stream")
             if ok and filepath then
@@ -265,17 +265,39 @@ function CapabilityHandler:render_result()
         end
     end
 
-    --Handle blobs content
-    if self.state.result.blobs and #self.state.result.blobs > 0 then
+    if output.audios and #output.audios > 0 then
         if #lines > 0 then
             vim.list_extend(lines, self:render_section_content({ "  " }, 1))
         end
-        for i, blob in ipairs(self.state.result.blobs) do
+        for i, _ in ipairs(output.audios) do
+            local audio_line = NuiLine():append("Audio " .. i .. ": Audio data cannot be shown", highlights.muted)
+            vim.list_extend(lines, self:render_section_content({ audio_line }, 1))
+        end
+    end
+
+    --Handle blobs content
+    if output.blobs and #output.blobs > 0 then
+        if #lines > 0 then
+            vim.list_extend(lines, self:render_section_content({ "  " }, 1))
+        end
+        for i, blob in ipairs(output.blobs) do
             local blob_line = NuiLine():append("Blob " .. i .. ": Blob data cannot be shown", highlights.muted)
             vim.list_extend(lines, self:render_section_content({ blob_line }, 1))
         end
     end
+    return lines
+end
 
+-- Common result rendering
+function CapabilityHandler:render_result()
+    if not self.state.result then
+        return {}
+    end
+
+    local lines = {}
+    table.insert(lines, Text.pad_line(NuiLine())) -- Empty line
+    vim.list_extend(lines, self:render_section_start("Result"))
+    vim.list_extend(lines, self:render_output(self.state.result))
     vim.list_extend(lines, self:render_section_end())
     return lines
 end
@@ -286,6 +308,7 @@ function CapabilityHandler:handle_response(response, err)
     if err then
         vim.notify(string.format("%s execution failed: %s", self.type, err), vim.log.levels.ERROR)
         self.state.error = err
+        self.state.result = response
     else
         self.state.result = response
         self.state.error = nil

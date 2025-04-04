@@ -218,16 +218,65 @@ function M.get_active_servers_prompt(servers)
     return prompt
 end
 
+function M.parse_prompt_response(response)
+    if response == nil then
+        return { text = "", images = {}, blobs = {}, audios = {} }
+    end
+    local result = response.result or {}
+    local messages = {}
+    for _, v in ipairs(result.messages or {}) do
+        local output = { text = "", images = {}, blobs = {}, audios = {} }
+        local content = v.content
+        if content.type == "text" then
+            output.text = content.text
+        elseif content.type == "image" then
+            table.insert(output.images, {
+                data = content.data,
+                mimeType = content.mimeType or "application/octet-stream",
+            })
+        elseif content.type == "audio" then
+            table.insert(output.audios, {
+                data = content.data,
+                mimeType = content.mimeType or "application/octet-stream",
+            })
+        elseif content.type == "blob" then
+            table.insert(output.blobs, {
+                data = content.data,
+                mimeType = content.mimeType or "application/octet-stream",
+            })
+        elseif content.type == "resource" then
+            -- Handle resource content by treating it as a resource response
+            local resource_result = M.parse_resource_response({
+                result = {
+                    contents = { content.resource },
+                },
+            })
+            output.text = resource_result.text
+            vim.list_extend(output.images, resource_result.images)
+            vim.list_extend(output.blobs, resource_result.blobs)
+            vim.list_extend(output.audios, resource_result.audios)
+        end
+        table.insert(messages, {
+            role = v.role,
+            output = output,
+        })
+    end
+    return {
+        messages = messages,
+    }
+end
+
 function M.parse_tool_response(response)
     if response == nil then
-        return { text = "", images = {}, blobs = {} }
+        return { text = "", images = {}, blobs = {}, audios = {} }
     end
 
     local result = response.result or {}
-    local output = { text = "", images = {}, blobs = {} }
+    local output = { text = "", images = {}, blobs = {}, audios = {} }
     local images = {}
     local blobs = {}
     local texts = {}
+    local audios = {}
 
     -- parse tool response
     for _, v in ipairs(result.content or {}) do
@@ -236,6 +285,16 @@ function M.parse_tool_response(response)
             table.insert(texts, v.text)
         elseif type == "image" then
             table.insert(images, {
+                data = v.data,
+                mimeType = v.mimeType or "application/octet-stream",
+            })
+        elseif type == "blob" then
+            table.insert(output.blobs, {
+                data = v.data,
+                mimeType = v.mimeType or "application/octet-stream",
+            })
+        elseif type == "audio" then
+            table.insert(audios, {
                 data = v.data,
                 mimeType = v.mimeType or "application/octet-stream",
             })
@@ -250,6 +309,7 @@ function M.parse_tool_response(response)
             table.insert(texts, resource_result.text)
             vim.list_extend(images, resource_result.images)
             vim.list_extend(blobs, resource_result.blobs)
+            vim.list_extend(audios, resource_result.audios)
         end
     end
 
@@ -260,6 +320,7 @@ function M.parse_tool_response(response)
     end
     output.images = images
     output.blobs = blobs
+    output.audios = audios
 
     return output
 end
@@ -274,6 +335,7 @@ function M.parse_resource_response(response)
     local images = {}
     local blobs = {}
     local texts = {}
+    local audios = {}
 
     for _, content in ipairs(result.contents or {}) do
         if content.uri then
@@ -282,6 +344,12 @@ function M.parse_resource_response(response)
                 if content.mimeType and content.mimeType:match("^image/") then
                     -- It's an image
                     table.insert(images, {
+                        data = content.blob,
+                        mimeType = content.mimeType,
+                    })
+                elseif content.mimeType and content.mimeType:match("^audio/") then
+                    -- It's an audio blob
+                    table.insert(audios, {
                         data = content.blob,
                         mimeType = content.mimeType,
                     })
@@ -312,7 +380,7 @@ function M.parse_resource_response(response)
     output.text = table.concat(texts, "\n\n")
     output.images = images
     output.blobs = blobs
-
+    output.audios = audios
     return output
 end
 

@@ -7,4 +7,5 @@ mcphub.add_server("neovim", {
 
 require("mcphub.native.neovim.terminal") -- Terminal and shell commands
 require("mcphub.native.neovim.files") -- File system operations
-require("mcphub.native.neovim.lsp") -- File system operations
+require("mcphub.native.neovim.lsp")
+require("mcphub.native.neovim.prompts")

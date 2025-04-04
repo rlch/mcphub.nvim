@@ -41,7 +41,7 @@ function MainView:show_prompts_view()
     self.cursor_positions.browse_mode = vim.api.nvim_win_get_cursor(0)
 
     -- Switch to prompts capability
-    self.active_capability = Capabilities.create_handler("prompts", "MCP Servers", { name = "System Prompts" }, self)
+    self.active_capability = Capabilities.create_handler("preview", "MCP Servers", { name = "System Prompts" }, self)
     self:setup_active_mode()
     self:draw()
     -- Move to capability's preferred position
@@ -121,7 +121,13 @@ function MainView:handle_action()
             vim.api.nvim_win_set_cursor(0, cap_pos)
         end
     elseif
-        (type == "tool" or type == "resource" or type == "resourceTemplate" or type == "customInstructions") and context
+        (
+            type == "tool"
+            or type == "resource"
+            or type == "resourceTemplate"
+            or type == "customInstructions"
+            or type == "prompt"
+        ) and context
     then
         if context.disabled then
             return
@@ -265,7 +271,11 @@ function MainView:handle_server_toggle()
                 end,
             })
         end
-    elseif (type == "tool" or type == "resource" or type == "resourceTemplate") and context and State.hub_instance then
+    elseif
+        (type == "tool" or type == "resource" or type == "resourceTemplate" or type == "prompt")
+        and context
+        and State.hub_instance
+    then
         local server_name = context.server_name
         local is_native = native.is_native_server(server_name)
         local server_config = (
@@ -276,6 +286,7 @@ function MainView:handle_server_toggle()
             tool = { id_field = "name", config_field = "disabled_tools" },
             resource = { id_field = "uri", config_field = "disabled_resources" },
             resourceTemplate = { id_field = "uriTemplate", config_field = "disabled_resourceTemplates" },
+            prompt = { id_field = "name", config_field = "disabled_prompts" },
         }
 
         local config = type_config[type]
@@ -429,7 +440,7 @@ function MainView:render_servers(line_offset)
 
     -- Add token count on MCP Servers section if connected
     if State.server_state.status == "connected" and State.hub_instance and State.hub_instance:is_ready() then
-        local prompts = State.hub_instance:get_prompts()
+        local prompts = State.hub_instance:generate_prompts()
         if prompts then
             -- Calculate total tokens from all prompts
             local active_servers_tokens = utils.calculate_tokens(prompts.active_servers or "")
@@ -464,9 +475,9 @@ function MainView:render_servers(line_offset)
     table.insert(lines, Text.pad_line(header_line))
     current_line = current_line + 1
     -- Track breadcrumb line for interaction
-    self:track_line(current_line, "breadcrumb", {
-        hint = "<CR> to preview servers prompt",
-    })
+    -- self:track_line(current_line, "breadcrumb", {
+    --     hint = "<CR> to preview servers prompt",
+    -- })
     table.insert(lines, self:divider())
     current_line = current_line + 1
 

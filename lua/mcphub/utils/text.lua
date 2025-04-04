@@ -50,7 +50,7 @@ M.icons = {
 
     file = "",
     folder = "",
-
+    prompt = "󰿠",
     -- Error type icons
     setup_error = "",
     server_error = "",

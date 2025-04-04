@@ -202,7 +202,12 @@ M.ProcessHandlers = {
 
             -- Handle tool/resourcelist updates
             if
-                parsed.type == "info" and (parsed.code == "TOOL_LIST_CHANGED" or parsed.code == "RESOURCE_LIST_CHANGED")
+                parsed.type == "info"
+                and (
+                    parsed.code == "TOOL_LIST_CHANGED"
+                    or parsed.code == "RESOURCE_LIST_CHANGED"
+                    or parsed.code == "PROMPT_LIST_CHANGED"
+                )
             then
                 hub:handle_capability_updates(parsed.data)
                 return true

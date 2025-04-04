@@ -15,6 +15,7 @@ local M = {
     add_tool = native.add_tool,
     add_resource = native.add_resource,
     add_resource_template = native.add_resource_template,
+    add_prompt = native.add_prompt,
 }
 
 --- Setup MCPHub plugin with error handling and validation

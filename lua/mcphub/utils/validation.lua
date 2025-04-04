@@ -443,10 +443,7 @@ function M.validate_resource_template(template)
     return { ok = true }
 end
 
---- Validate native server definition
----@param def table Native server definition
----@param server_name string Server name for error messages
----@return ValidationResult
+-- Add prompts validation in native server validation
 function M.validate_native_server(def)
     local server_name = def.name
     if not def.name then
@@ -502,6 +499,38 @@ function M.validate_native_server(def)
                 }
             end
         end
+    end
+
+    -- Validate prompts if present
+    if def.capabilities.prompts then
+        for _, prompt in ipairs(def.capabilities.prompts) do
+            local ok, err = M.validate_prompt(prompt)
+            if not ok then
+                return {
+                    ok = false,
+                    error = err,
+                }
+            end
+        end
+    end
+    return { ok = true }
+end
+
+--- Validate a prompt definition
+---@param prompt table Prompt definition to validate
+---@return ValidationResult
+function M.validate_prompt(prompt)
+    -- Validate name
+    local name_result = validate_property(prompt.name, "string", "Prompt name", Error.Types.NATIVE.INVALID_NAME)
+    if not name_result.ok then
+        return name_result
+    end
+
+    -- Validate handler
+    local handler_result =
+        validate_property(prompt.handler, "function", "Handler", Error.Types.NATIVE.INVALID_HANDLER, prompt.name)
+    if not handler_result.ok then
+        return handler_result
     end
 
     return { ok = true }

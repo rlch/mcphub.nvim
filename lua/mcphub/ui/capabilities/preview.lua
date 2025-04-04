@@ -32,7 +32,7 @@ function PromptsHandler:render(line_offset)
         return lines
     end
 
-    local prompts = hub:get_prompts()
+    local prompts = hub:generate_prompts()
     if not prompts then
         vim.list_extend(lines, self:render_section_start("System Prompts"))
         vim.list_extend(

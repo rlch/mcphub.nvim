@@ -378,6 +378,84 @@ function MCPHub:stop_mcp_server(name, disable, opts)
     })
 end
 
+--- Get a prompt from the server
+--- @param server_name string
+--- @param prompt_name string
+--- @param args table
+--- @param opts? { callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @return table|nil, string|nil If no callback is provided, returns response and error
+function MCPHub:get_prompt(server_name, prompt_name, args, opts)
+    opts = opts or {}
+    if opts.callback then
+        local original_callback = opts.callback
+        opts.callback = function(response, err)
+            -- Signal prompt completion
+            utils.fire("MCPHubPromptEnd", {
+                server = server_name,
+                prompt = prompt_name,
+                success = err == nil,
+            })
+            if opts.parse_response == true then
+                response = prompt_utils.parse_prompt_response(response)
+            end
+            original_callback(response, err)
+        end
+    end
+
+    -- Signal prompt start
+    utils.fire("MCPHubPromptStart", {
+        server = server_name,
+        prompt = prompt_name,
+    })
+    local arguments = args or vim.empty_dict()
+    if vim.islist(arguments) or vim.isarray(arguments) then
+        if #arguments == 0 then
+            arguments = vim.empty_dict()
+        else
+            log.error("Arguments should be a dictionary, but got a list.")
+            return
+        end
+    end
+    --make sure we have an object
+    -- Check native servers first
+    local is_native = native.is_native_server(server_name)
+    if is_native then
+        local server = is_native
+        local result, err = server:get_prompt(prompt_name, args, opts)
+        if opts.callback == nil then
+            utils.fire("MCPHubPromptEnd", {
+                server = server_name,
+                prompt = prompt_name,
+                success = err == nil,
+            })
+            return (opts.parse_response == true and prompt_utils.parse_prompt_response(result) or result), err
+        end
+        return
+    end
+
+    local response, err = self:api_request(
+        "POST",
+        string.format("servers/%s/prompts", url_encode(server_name)),
+        vim.tbl_extend("force", {
+            timeout = opts.timeout or TOOL_TIMEOUT,
+            body = {
+                prompt = prompt_name,
+                arguments = arguments,
+            },
+        }, opts)
+    )
+
+    -- handle sync calls
+    if opts.callback == nil then
+        utils.fire("MCPHubPromptEnd", {
+            server = server_name,
+            prompt = prompt_name,
+            success = err == nil,
+        })
+        return (opts.parse_response == true and prompt_utils.parse_prompt_response(response) or response), err
+    end
+end
+
 --- Call a tool on a server
 --- @param server_name string
 --- @param tool_name string
@@ -407,12 +485,15 @@ function MCPHub:call_tool(server_name, tool_name, args, opts)
         server = server_name,
         tool = tool_name,
     })
-    local arguments = args or {}
-    if vim.tbl_isempty(arguments) then
-        --HACK: add a property that will force encoding as an object
-        arguments.__object = true
+    local arguments = args or vim.empty_dict()
+    if vim.islist(arguments) or vim.isarray(arguments) then
+        if #arguments == 0 then
+            arguments = vim.empty_dict()
+        else
+            log.error("Arguments should be a dictionary, but got a list.")
+            return
+        end
     end
-
     -- Check native servers first
     local is_native = native.is_native_server(server_name)
     if is_native then
@@ -673,6 +754,9 @@ function MCPHub:handle_capability_updates(data)
                     resources = data.resources,
                     resourceTemplates = data.resourceTemplates,
                 })
+            elseif data.type == "PROMPT" then
+                s.capabilities.prompts = data.prompts or {}
+                State:emit("prompt_list_changed", { server = data.server, hub = self, prompts = data.prompts })
             end
             break
         end
@@ -899,6 +983,7 @@ local function filter_server_capabilities(server, config)
             tools = { list = "disabled_tools", id = "name" },
             resources = { list = "disabled_resources", id = "uri" },
             resourceTemplates = { list = "disabled_resourceTemplates", id = "uriTemplate" },
+            prompts = { list = "disabled_prompts", id = "name" },
         }
 
         for cap_type, filter in pairs(capability_filters) do
@@ -936,6 +1021,24 @@ function MCPHub:get_servers()
     end
 
     return filtered_servers
+end
+
+function MCPHub:get_prompts()
+    local active_servers = self:get_servers()
+    local prompts = {}
+    for _, server in ipairs(active_servers) do
+        if server.capabilities and server.capabilities.prompts then
+            for _, prompt in ipairs(server.capabilities.prompts) do
+                table.insert(
+                    prompts,
+                    vim.tbl_extend("force", prompt, {
+                        server_name = server.name,
+                    })
+                )
+            end
+        end
+    end
+    return prompts
 end
 
 function MCPHub:get_resources()
@@ -1002,7 +1105,7 @@ end
 --- Get all MCP system prompts
 ---@param opts? {use_mcp_tool_example?: string, access_mcp_resource_example?: string}
 ---@return {active_servers: string|nil, use_mcp_tool: string|nil, access_mcp_resource: string|nil}
-function MCPHub:get_prompts(opts)
+function MCPHub:generate_prompts(opts)
     if not self:ensure_ready() then
         return {}
     end
