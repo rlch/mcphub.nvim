@@ -37,7 +37,7 @@ function M:create_autocommands()
     -- Tool/Resource activity events
     vim.api.nvim_create_autocmd("User", {
         group = group,
-        pattern = { "MCPHubToolStart", "MCPHubToolEnd", "MCPHubResourceStart", "MCPHubResourceEnd" },
+        pattern = { "MCPHub*" },
         callback = function(args)
             -- Update based on event pattern
             if args.match == "MCPHubToolStart" then
@@ -52,6 +52,12 @@ function M:create_autocommands()
             elseif args.match == "MCPHubResourceEnd" then
                 vim.g.mcphub_resource_active = false
                 vim.g.mcphub_resource_info = nil
+            elseif args.match == "MCPHubPromptStart" then
+                vim.g.mcphub_prompt_active = true
+                vim.g.mcphub_prompt_info = args.data
+            elseif args.match == "MCPHubPromptEnd" then
+                vim.g.mcphub_prompt_active = false
+                vim.g.mcphub_prompt_info = nil
             end
             -- Manage animation
             self:manage_spinner()
@@ -60,7 +66,10 @@ function M:create_autocommands()
 end
 
 function M:manage_spinner()
-    local should_show = vim.g.mcphub_tool_active or vim.g.mcphub_resource_active or vim.g.mcphub_status == "connecting"
+    local should_show = vim.g.mcphub_tool_active
+        or vim.g.mcphub_resource_active
+        or vim.g.mcphub_prompt_active
+        or vim.g.mcphub_status == "connecting"
     if should_show and not timer then
         timer = vim.loop.new_timer()
         timer:start(
@@ -101,7 +110,7 @@ function M:update_status()
     local status_icon, status_hl = self:get_status_display()
 
     -- Show either the spinner or the number of active servers
-    local count_or_spinner = (vim.g.mcphub_tool_active or vim.g.mcphub_resource_active)
+    local count_or_spinner = (vim.g.mcphub_tool_active or vim.g.mcphub_resource_active or vim.g.mcphub_prompt_active)
             and spinner_frames[current_frame]
         or tostring(vim.g.mcphub_active_servers or 0)
 
