@@ -307,6 +307,12 @@ MCPHub uses a JSON configuration file to define MCP servers. The default locatio
         "SERVER_URL": null,            // Falls back to process.env.SERVER_URL
         "DEBUG": "true"               // Direct value, no fallback
       }
+    },
+    "remote-server": {
+      "url": "https://api.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token"
+      }
     }
   }
 }

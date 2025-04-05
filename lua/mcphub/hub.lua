@@ -1067,7 +1067,7 @@ function MCPHub:get_tools()
 end
 
 function MCPHub:get_active_servers_prompt()
-    if not self:ensure_ready() then
+    if not self:is_ready() then
         return ""
     end
     return prompt_utils.get_active_servers_prompt(self:get_servers())
