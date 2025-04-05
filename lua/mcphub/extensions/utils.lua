@@ -1,4 +1,37 @@
 local M = {}
+
+function M.parse_params(params, action_name)
+    params = params or {}
+    local server_name = params.server_name
+    local tool_name = params.tool_name
+    local uri = params.uri
+    local arguments = params.tool_input or {}
+    local errors = {}
+    if not vim.tbl_contains({ "use_mcp_tool", "access_mcp_resource" }, action_name) then
+        table.insert(errors, "Action must be one of `use_mcp_tool` or `access_mcp_resource`")
+    end
+    if not server_name then
+        table.insert(errors, "server_name is required")
+    end
+    if action_name == "use_mcp_tool" and not tool_name then
+        table.insert(errors, "tool_name is required")
+    end
+    if action_name == "use_mcp_tool" and type(arguments) ~= "table" then
+        table.insert(errors, "parameters must be an object")
+    end
+
+    if action_name == "access_mcp_resource" and not uri then
+        table.insert(errors, "uri is required")
+    end
+    return {
+        errors = errors,
+        action = action_name or "nil",
+        server_name = server_name or "nil",
+        tool_name = tool_name or "nil",
+        uri = uri or "nil",
+        arguments = arguments or {},
+    }
+end
 function M.setup_codecompanion_variables(enabled)
     if not enabled then
         return
