@@ -293,42 +293,49 @@ function M.render_server_line(server, active)
                 local enabled = #capabilities - #disabled
 
                 line:append(icon, highlight):append(
-                    (" " .. tostring(enabled) .. (#disabled > 0 and "/" .. tostring(#capabilities) or "")) .. " ",
-                    highlight
+                    (" " .. tostring(enabled) .. (#disabled > 0 and "/" .. tostring(#capabilities) or "")),
+                    Text.highlights.muted
                 )
+                return true
             end
         end
-        line:append(" [", Text.highlights.muted)
+        -- line:append(" [", Text.highlights.muted)
 
-        render_capability_count(
-            server.capabilities.prompts,
-            server_config.disabled_prompts,
-            "name",
-            Text.icons.prompt,
-            Text.highlights.muted
-        )
-        render_capability_count(
-            server.capabilities.tools,
-            server_config.disabled_tools,
-            "name",
-            Text.icons.tool,
-            Text.highlights.muted
-        )
-        render_capability_count(
-            server.capabilities.resources,
-            server_config.disabled_resources,
-            "uri",
-            Text.icons.resource,
-            Text.highlights.muted
-        )
-        render_capability_count(
-            server.capabilities.resourceTemplates,
-            server_config.disabled_resourceTemplates,
-            "uriTemplate",
-            Text.icons.resourceTemplate,
-            Text.highlights.muted
-        )
-        line:append("]", Text.highlights.muted)
+        -- if
+        --     render_capability_count(
+        --         server.capabilities.prompts,
+        --         server_config.disabled_prompts,
+        --         "name",
+        --         Text.icons.prompt,
+        --         Text.highlights.muted
+        --     )
+        -- then
+        --     line:append(" ")
+        -- end
+        -- render_capability_count(
+        --     server.capabilities.tools,
+        --     server_config.disabled_tools,
+        --     "name",
+        --     Text.icons.tool,
+        --     Text.highlights.success
+        -- )
+        -- line:append(" ")
+        -- render_capability_count(
+        --     server.capabilities.resources,
+        --     server_config.disabled_resources,
+        --     "uri",
+        --     Text.icons.resource,
+        --     Text.highlights.warning
+        -- )
+        -- line:append(" ")
+        -- render_capability_count(
+        --     server.capabilities.resourceTemplates,
+        --     server_config.disabled_resourceTemplates,
+        --     "uriTemplate",
+        --     Text.icons.resourceTemplate,
+        --     Text.highlights.error
+        -- )
+        -- line:append("]", Text.highlights.muted)
     end
 
     -- Add status description if any
