@@ -1004,7 +1004,9 @@ sequenceDiagram
 - [x] MCP Resources as variables in chat plugins
 - [x] MCP Prompts as slash commands in chat plugins
 - [ ] Support for #variables, /slash_commands in avante
-- [ ] Support SSE transport
+- [x] Support SSE transport
+- [ ] Composio Integration
+- [ ] Better Docs and Wiki
 
 
 ## 👏 Acknowledgements
