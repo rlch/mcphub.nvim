@@ -243,6 +243,146 @@ function M.setup_codecompanion_tools(enabled)
     --INFO:Individual tools might be an overkill
 end
 
+function M.setup_avante_slash_commands(enabled)
+    if not enabled then
+        return
+    end
+
+    local mcphub = require("mcphub")
+    --setup event listners to update variables, tools etc
+    mcphub.on({ "servers_updated", "prompt_list_changed" }, function(_)
+        local hub = mcphub.get_hub_instance()
+        if not hub then
+            return
+        end
+        local prompts = hub:get_prompts()
+        local ok, config = pcall(require, "avante.config")
+        if not ok then
+            return
+        end
+
+        local slash_commands = config.slash_commands
+        local seen = {}
+        -- remove existing mcp slash commands that start with mcp
+        for i, value in ipairs(slash_commands) do
+            seen[value.name] = i
+        end
+        for _, prompt in ipairs(prompts) do
+            local server_name = prompt.server_name
+            local prompt_name = prompt.name or ""
+            local description = prompt.description or ""
+            local arguments = prompt.arguments or {}
+            if type(description) == "function" then
+                local ok, desc = pcall(description, prompt)
+                if ok then
+                    description = desc or ""
+                else
+                    description = "Error in description function: " .. (desc or "")
+                end
+            end
+            if type(arguments) == "function" then
+                local ok, args = pcall(arguments, prompt)
+                if ok then
+                    arguments = args or {}
+                else
+                    vim.notify("Error in arguments function: " .. (args or ""), vim.log.levels.ERROR)
+                    arguments = {}
+                end
+            end
+            --remove new lines
+            description = description:gsub("\n", " ")
+
+            description = prompt_name .. " (" .. description .. ")"
+            local slash_command = {
+                name = "mcp:" .. server_name .. ":" .. prompt_name,
+                description = description,
+                callback = function(sidebar, args, cb)
+                    local values = {}
+                    local should_proceed = true
+                    for _, arg in ipairs(arguments) do
+                        if not should_proceed then
+                            break
+                        end
+                        local arg_name = arg.name or ""
+                        -- local arg_description = arg.description or ""
+                        local required = arg.required or false
+                        vim.ui.input({
+                            prompt = arg_name .. (required and " (required): " or ": "),
+                            default = arg.default or "",
+                        }, function(input)
+                            if required and (input == nil or input == "") then
+                                vim.notify("Value for " .. arg_name .. " is required", vim.log.levels.ERROR)
+                                should_proceed = false
+                                return
+                            end
+                            if input == nil then
+                                return
+                            end
+                            values[arg_name] = input
+                        end)
+                    end
+                    if not should_proceed then
+                        vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                        return
+                    end
+                    -- this is sync and will block the UI (can't use async in slash_commands yet)
+                    local response, err = hub:get_prompt(server_name, prompt_name, values, {
+                        caller = {
+                            type = "avante",
+                            avante = sidebar,
+                            meta = {
+                                is_within_slash_command = true,
+                            },
+                        },
+                        parse_response = true,
+                    })
+                    if not response then
+                        if err then
+                            vim.notify("Error in slash command: " .. err, vim.log.levels.ERROR)
+                            vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                        end
+                        return
+                    end
+                    local messages = response.messages or {}
+                    local text_messages = {}
+                    for i, message in ipairs(messages) do
+                        local output = message.output
+                        if output.text and output.text ~= "" then
+                            if i == #messages and message.role == "user" then
+                                sidebar:set_input_value(output.text)
+                            else
+                                table.insert(text_messages, {
+                                    role = message.role,
+                                    content = output.text,
+                                })
+                            end
+                        end
+                    end
+                    sidebar:add_chat_history(text_messages, { visible = true })
+                    vim.notify(
+                        string.format(
+                            "%s message%s added successfully",
+                            #text_messages,
+                            #text_messages == 1 and "" or "s"
+                        ),
+                        vim.log.levels.INFO
+                    )
+                    if cb then
+                        cb()
+                    end
+                end,
+            }
+            local seen_idx = seen[slash_command.name]
+            if seen_idx ~= nil then
+                slash_commands[seen_idx] = slash_command
+            else
+                table.insert(slash_commands, slash_command)
+                seen[slash_command.name] = #slash_commands
+            end
+        end
+    end)
+end
+
 function M.get_mcp_tool_prompt(params)
     local action_name = params.action
     local server_name = params.server_name

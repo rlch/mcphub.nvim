@@ -64,6 +64,7 @@ function M.setup(opts)
             },
             avante = {
                 auto_approve_mcp_tool_calls = false,
+                make_slash_commands = true,
             },
         },
         on_ready = function() end,
@@ -254,6 +255,7 @@ function M._handle_version_check(j, code, config)
 
     require("mcphub.extensions").setup("codecompanion", config.extensions.codecompanion)
     --TODO: Add Support for Avante
+    require("mcphub.extensions").setup("avante", config.extensions.avante)
 
     -- Start hub
     hub:start({
