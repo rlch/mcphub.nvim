@@ -261,12 +261,15 @@ function M.setup_avante_slash_commands(enabled)
             return
         end
 
-        local slash_commands = config.slash_commands
-        local seen = {}
-        -- remove existing mcp slash commands that start with mcp
+        local slash_commands = config.slash_commands or {}
+        -- remove existing mcp slash commands that start with mcp so that when user disables a server, those prompts are removed
         for i, value in ipairs(slash_commands) do
-            seen[value.name] = i
+            local id = value.name or ""
+            if id:sub(1, 3) == "mcp" then
+                slash_commands[i] = nil
+            end
         end
+        --add all the current prompts
         for _, prompt in ipairs(prompts) do
             local server_name = prompt.server_name
             local prompt_name = prompt.name or ""
@@ -372,13 +375,7 @@ function M.setup_avante_slash_commands(enabled)
                     end
                 end,
             }
-            local seen_idx = seen[slash_command.name]
-            if seen_idx ~= nil then
-                slash_commands[seen_idx] = slash_command
-            else
-                table.insert(slash_commands, slash_command)
-                seen[slash_command.name] = #slash_commands
-            end
+            table.insert(slash_commands, slash_command)
         end
     end)
 end
