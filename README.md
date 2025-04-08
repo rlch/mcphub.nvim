@@ -250,6 +250,8 @@ require("mcphub").setup({
         zindex = 50,
         border = "rounded", -- "none", "single", "double", "rounded", "solid", "shadow"
       },
+      wo = { -- window-scoped options (vim.wo)
+      }
     },
 
     -- Event callbacks
