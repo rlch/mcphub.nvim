@@ -269,6 +269,7 @@ function MCPHub:start_mcp_server(name, opts)
         State:notify_subscribers({
             server_state = true,
         }, "server")
+        self:handle_servers_updated()
     else
         -- First update state to show connecting
         if self:is_ready() then
@@ -330,6 +331,7 @@ function MCPHub:stop_mcp_server(name, disable, opts)
         State:notify_subscribers({
             server_state = true,
         }, "server")
+        self:handle_servers_updated()
     else
         -- First update state to show disconnecting
         if self:is_ready() then
