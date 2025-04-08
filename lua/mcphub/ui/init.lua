@@ -265,7 +265,6 @@ end
 
 function UI:restart()
     if State.hub_instance then
-        vim.notify("Restarting")
         State.hub_instance:restart(function(success)
             if success then
                 vim.notify("Restarted")
