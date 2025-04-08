@@ -230,6 +230,7 @@ require("mcphub").setup({
     -- Extensions configuration
 	extensions = {
 		avante = {
+            make_slash_commands = true, -- make /slash commands from MCP server prompts
 		},
 		codecompanion = {
 			-- Show the mcp tool result in the chat buffer
@@ -395,13 +396,19 @@ MCPHub.nvim provides extensions that integrate with popular Neovim chat plugins.
 
 </summary>
 
-Add MCP capabilities to Avante by including the MCP tool in your setup:
+Add MCP capabilities to Avante by including the MCP tools in your setup:
 
-> Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to automatically approve mcp tool requests. 
+> Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to automatically approve mcp tool requests.
+
+> Set `config.extensions.avante.make_slash_commands = true` to enable prompts as slash commands (enabled by default).
+Server prompts will be available as `/mcp:server_name:prompt_name` in chat.
+
+The `mcp_tool()` function now returns two separate tools (`use_mcp_tool` and `access_mcp_resource`) for better schema generation:
 
 ```lua
 extensions = {
     avante = {
+        make_slash_commands = true, -- make /slash commands from MCP server prompts
     }
 }
 ```

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2025-04-08
+
+### Added
+
+- Added support for Avante slash commands 
+  * Prompts from MCP servers will be available as `/mcp:server_name:prompt_name` in Avant chat
+  * When slash command is triggered, messages from the prompt with appropriate roles will be added to chat history.
+  * Along with MCP Server prompt, you can also create your own prompts with mcphub.add_prompt api. ([Native Servers](https://github.com/ravitemer/mcphub.nvim/wiki/Weather-Server))
+  * You can disable this with `config.extensions.avante.make_slash_commands = false` in the setup.
+- Avante mcp_tool() return two separate `use_mcp_tool` and `access_mcp_resource` tools which should make it easy for models to generate proper schemas for tool calls. (No need to change anything in the config)
+
 ## [4.4.0] - 2025-04-05
 
 ### Added
