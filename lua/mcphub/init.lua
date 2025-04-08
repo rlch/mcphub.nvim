@@ -63,7 +63,6 @@ function M.setup(opts)
                 make_vars = true,
             },
             avante = {
-                auto_approve_mcp_tool_calls = false,
                 make_slash_commands = true,
             },
         },
