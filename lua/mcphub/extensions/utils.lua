@@ -152,84 +152,58 @@ function M.setup_codecompanion_slash_commands(enabled)
                 id = "mcp" .. server_name .. prompt_name,
                 description = description,
                 callback = function(self)
-                    local values = {}
-                    local should_proceed = true
-                    for _, arg in ipairs(arguments) do
-                        if not should_proceed then
-                            break
-                        end
-                        local arg_name = arg.name or ""
-                        -- local arg_description = arg.description or ""
-                        local required = arg.required or false
-                        vim.ui.input({
-                            prompt = arg_name .. (required and " (required): " or ": "),
-                            default = arg.default or "",
-                        }, function(input)
-                            if required and (input == nil or input == "") then
-                                vim.notify("Value for " .. arg_name .. " is required", vim.log.levels.ERROR)
-                                should_proceed = false
-                                return
-                            end
-                            if input == nil then
-                                return
-                            end
-                            values[arg_name] = input
-                        end)
-                    end
-                    if not should_proceed then
-                        vim.notify("Prompt cancelled", vim.log.levels.INFO)
-                        return
-                    end
-                    -- this is sync and will block the UI (can't use async in slash_commands yet)
-                    local response, err = hub:get_prompt(server_name, prompt_name, values, {
-                        caller = {
-                            type = "codecompanion",
-                            codecompanion = self,
-                            meta = {
-                                is_within_slash_command = true,
+                    M.collect_arguments(arguments, function(values)
+                        -- this is sync and will block the UI (can't use async in slash_commands yet)
+                        local response, err = hub:get_prompt(server_name, prompt_name, values, {
+                            caller = {
+                                type = "codecompanion",
+                                codecompanion = self,
+                                meta = {
+                                    is_within_slash_command = true,
+                                },
                             },
-                        },
-                        parse_response = true,
-                    })
-                    if not response then
-                        if err then
-                            vim.notify("Error in slash command: " .. err, vim.log.levels.ERROR)
-                            vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                            parse_response = true,
+                        })
+                        if not response then
+                            if err then
+                                vim.notify("Error in slash command: " .. err, vim.log.levels.ERROR)
+                                vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                            end
+                            return
                         end
-                        return
-                    end
-                    local messages = response.messages or {}
-                    local text_messages = 0
-                    for i, message in ipairs(messages) do
-                        local output = message.output
-                        --TODO: Currently codecompanion only supports text messages
-                        if output.text and output.text ~= "" then
-                            local mapped_role = message.role == "assistant" and config.constants.LLM_ROLE
-                                or message.role == "system" and config.constants.SYSTEM_ROLE
-                                or config.constants.USER_ROLE
-                            text_messages = text_messages + 1
-                            -- if last message is from user, add it to the chat buffer
-                            if i == #messages and mapped_role == config.constants.USER_ROLE then
-                                self:add_buf_message({
-                                    role = mapped_role,
-                                    content = output.text,
-                                })
-                            else
-                                self:add_message({
-                                    role = mapped_role,
-                                    content = output.text,
-                                })
+                        local messages = response.messages or {}
+                        local text_messages = 0
+                        for i, message in ipairs(messages) do
+                            local output = message.output
+                            --TODO: Currently codecompanion only supports text messages
+                            if output.text and output.text ~= "" then
+                                local mapped_role = message.role == "assistant" and config.constants.LLM_ROLE
+                                    or message.role == "system" and config.constants.SYSTEM_ROLE
+                                    or config.constants.USER_ROLE
+                                text_messages = text_messages + 1
+                                -- if last message is from user, add it to the chat buffer
+                                if i == #messages and mapped_role == config.constants.USER_ROLE then
+                                    self:add_buf_message({
+                                        role = mapped_role,
+                                        content = output.text,
+                                    })
+                                else
+                                    self:add_message({
+                                        role = mapped_role,
+                                        content = output.text,
+                                    })
+                                end
                             end
                         end
-                    end
-                    vim.notify(
-                        string.format(
-                            "%s message%s added successfully",
-                            text_messages,
-                            text_messages == 1 and "" or "s"
-                        ),
-                        vim.log.levels.INFO
-                    )
+                        vim.notify(
+                            string.format(
+                                "%s message%s added successfully",
+                                text_messages,
+                                text_messages == 1 and "" or "s"
+                            ),
+                            vim.log.levels.INFO
+                        )
+                    end)
                 end,
             }
         end
@@ -241,6 +215,36 @@ function M.setup_codecompanion_tools(enabled)
         return
     end
     --INFO:Individual tools might be an overkill
+end
+
+function M.collect_arguments(arguments, callback)
+    local values = {}
+    local should_proceed = true
+    local function collect_input(index)
+        if index > #arguments and should_proceed then
+            callback(values) -- All inputs collected, call the callback
+            return
+        end
+
+        local arg = arguments[index]
+        local arg_name = arg.name or ""
+        local required = arg.required or false
+        vim.ui.input({
+            prompt = arg_name .. (required and " (required): " or ": "),
+            default = arg.default or "",
+        }, function(input)
+            if required and (input == nil or input == "") then
+                vim.notify("Value for " .. arg_name .. " is required", vim.log.levels.ERROR)
+                should_proceed = false
+                return {}
+            end
+            if input ~= nil then
+                values[arg_name] = input
+            end
+            collect_input(index + 1) -- Move to the next argument
+        end)
+    end
+    collect_input(1) -- Start with the first argument
 end
 
 function M.setup_avante_slash_commands(enabled)
@@ -300,79 +304,52 @@ function M.setup_avante_slash_commands(enabled)
                 name = "mcp:" .. server_name .. ":" .. prompt_name,
                 description = description,
                 callback = function(sidebar, args, cb)
-                    local values = {}
-                    local should_proceed = true
-                    for _, arg in ipairs(arguments) do
-                        if not should_proceed then
-                            break
-                        end
-                        local arg_name = arg.name or ""
-                        -- local arg_description = arg.description or ""
-                        local required = arg.required or false
-                        vim.ui.input({
-                            prompt = arg_name .. (required and " (required): " or ": "),
-                            default = arg.default or "",
-                        }, function(input)
-                            if required and (input == nil or input == "") then
-                                vim.notify("Value for " .. arg_name .. " is required", vim.log.levels.ERROR)
-                                should_proceed = false
-                                return
-                            end
-                            if input == nil then
-                                return
-                            end
-                            values[arg_name] = input
-                        end)
-                    end
-                    if not should_proceed then
-                        vim.notify("Prompt cancelled", vim.log.levels.INFO)
-                        return
-                    end
-                    -- this is sync and will block the UI (can't use async in slash_commands yet)
-                    local response, err = hub:get_prompt(server_name, prompt_name, values, {
-                        caller = {
-                            type = "avante",
-                            avante = sidebar,
-                            meta = {
-                                is_within_slash_command = true,
+                    M.collect_arguments(arguments, function(values)
+                        local response, err = hub:get_prompt(server_name, prompt_name, values, {
+                            caller = {
+                                type = "avante",
+                                avante = sidebar,
+                                meta = {
+                                    is_within_slash_command = true,
+                                },
                             },
-                        },
-                        parse_response = true,
-                    })
-                    if not response then
-                        if err then
-                            vim.notify("Error in slash command: " .. err, vim.log.levels.ERROR)
-                            vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                            parse_response = true,
+                        })
+                        if not response then
+                            if err then
+                                vim.notify("Error in slash command: " .. err, vim.log.levels.ERROR)
+                                vim.notify("Prompt cancelled", vim.log.levels.INFO)
+                            end
+                            return
                         end
-                        return
-                    end
-                    local messages = response.messages or {}
-                    local text_messages = {}
-                    for i, message in ipairs(messages) do
-                        local output = message.output
-                        if output.text and output.text ~= "" then
-                            if i == #messages and message.role == "user" then
-                                sidebar:set_input_value(output.text)
-                            else
-                                table.insert(text_messages, {
-                                    role = message.role,
-                                    content = output.text,
-                                })
+                        local messages = response.messages or {}
+                        local text_messages = {}
+                        for i, message in ipairs(messages) do
+                            local output = message.output
+                            if output.text and output.text ~= "" then
+                                if i == #messages and message.role == "user" then
+                                    sidebar:set_input_value(output.text)
+                                else
+                                    table.insert(text_messages, {
+                                        role = message.role,
+                                        content = output.text,
+                                    })
+                                end
                             end
                         end
-                    end
-                    sidebar:add_chat_history(text_messages, { visible = true })
-                    vim.notify(
-                        string.format(
-                            "%s message%s added successfully",
-                            #text_messages,
-                            #text_messages == 1 and "" or "s"
-                        ),
-                        vim.log.levels.INFO
-                    )
-                    if cb then
-                        cb()
-                    end
+                        sidebar:add_chat_history(text_messages, { visible = true })
+                        vim.notify(
+                            string.format(
+                                "%s message%s added successfully",
+                                #text_messages,
+                                #text_messages == 1 and "" or "s"
+                            ),
+                            vim.log.levels.INFO
+                        )
+                        if cb then
+                            cb()
+                        end
+                    end)
                 end,
             }
             table.insert(slash_commands, slash_command)
