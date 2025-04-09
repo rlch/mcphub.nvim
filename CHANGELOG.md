@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2025-04-09
+
+### Added
+
+- Added support for Windows platform
+- Added configurable window options (#68)
+- Added examples to servers prompt for function based tools to improve model responses
+
+### Fixed
+
+- Fixed incorrect boolean evaluation in add_example function
+- Fixed async vim.ui.input handling for prompts (#71)
+- Fixed config file creation when not present
+
+### Documentation
+
+- Improved native server LLM guide
+- Enhanced CodeCompanion documentation
+- Updated MCP server configuration options
+- Fixed indentation in default config examples
+
 ## [4.5.0] - 2025-04-08
 
 ### Added
