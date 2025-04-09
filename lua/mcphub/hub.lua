@@ -721,7 +721,6 @@ function MCPHub:handle_servers_updated()
     self:emit_update()
     -- Emit server update event with prompt
     State:emit("servers_updated", {
-        prompt = self:get_active_servers_prompt(),
         hub = self,
     })
 end
@@ -1068,11 +1067,11 @@ function MCPHub:get_tools()
     return tools
 end
 
-function MCPHub:get_active_servers_prompt()
+function MCPHub:get_active_servers_prompt(add_example)
     if not self:is_ready() then
         return ""
     end
-    return prompt_utils.get_active_servers_prompt(self:get_servers())
+    return prompt_utils.get_active_servers_prompt(self:get_servers(), add_example)
 end
 
 function MCPHub:get_use_mcp_tool_prompt(opts)
@@ -1094,7 +1093,7 @@ function MCPHub:get_state()
 end
 
 --- Get all MCP system prompts
----@param opts? {use_mcp_tool_example?: string, access_mcp_resource_example?: string}
+---@param opts? {use_mcp_tool_example?: string, add_example?: boolean, access_mcp_resource_example?: string}
 ---@return {active_servers: string|nil, use_mcp_tool: string|nil, access_mcp_resource: string|nil}
 function MCPHub:generate_prompts(opts)
     if not self:ensure_ready() then
@@ -1102,7 +1101,7 @@ function MCPHub:generate_prompts(opts)
     end
     opts = opts or {}
     return {
-        active_servers = self:get_active_servers_prompt(),
+        active_servers = self:get_active_servers_prompt(opts.add_example),
         use_mcp_tool = prompt_utils.get_use_mcp_tool_prompt(opts.use_mcp_tool_example),
         access_mcp_resource = prompt_utils.get_access_mcp_resource_prompt(opts.access_mcp_resource_example),
     }

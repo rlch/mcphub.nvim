@@ -416,8 +416,10 @@ end
 
 function M.show_mcp_tool_prompt(params)
     local msg = M.get_mcp_tool_prompt(params)
-    local confirm = vim.fn.confirm(msg, "&Yes\n&No", 2)
+    local confirm = vim.fn.confirm(msg, "&Yes\n&No\n&Cancel", 1)
+    if confirm == 3 then
+        return false, true -- false for not confirmed, true for cancelled
+    end
     return confirm == 1
 end
-
 return M
