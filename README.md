@@ -468,10 +468,10 @@ Add MCP capabilities to CodeCompanion.
 
 > Set `make_slash_commands = true` to show prompts as /slash_commands in the chat buffer
 
-- Server prompts become available as `/mcp:prompt_name` commands in chat
-- Prompts with arguments  are handled using vim.ui.input 
-- If the last message is of `user` role, it will be added to the chat buffer. 
-- You can create your own prompt just like other capabilities with `mcphub.add_prompt` or by adding a native server to `config.native_server`.
+- Type @mcp in the chat (once submitted, it will add available MCP Servers to the system prompts and adds a tool so that the LLM can call tools, resources on MCP Servers etc)
+- Server prompts become available as `/mcp:prompt_name` slash commands in chat (*Currently very few servers provide prompts, but you can add your own using `mcphub.add_prompt`*)
+- Prompts with arguments are handled using vim.ui.input (cancelling input for required arguments will abort the slash command)
+- If the last message from the `/mcp:prompt_name` message is of `user` role, it will be added to the chat buffer. 
 
 * Whenever the servers are updated, the variables and slash_commands will also be updated in realtime
 ![image](https://github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a)
