@@ -146,18 +146,28 @@ function M.setup(opts)
         })
     end)
 
-    if not ok then
-        -- Handle executable not found error
-        local msg = [[mcp-hub executable not found. Please ensure:
+    local help_msg = [[mcp-hub executable not found. Please ensure:
 1. For global install: Run 'npm install -g mcp-hub@latest'
 2. For bundled install: Set build = 'bundled_build.lua' in lazy spec and use_bundled_binary = true in config.
 3. For custom install: Verify cmd/cmdArgs point to valid mcp-hub executable
 ]]
-        return M._on_setup_failed(Error("SETUP", Error.Types.SETUP.MISSING_DEPENDENCY, msg, { stack = job }))
+    if not ok then
+        -- Handle executable not found error
+        return M._on_setup_failed(Error("SETUP", Error.Types.SETUP.MISSING_DEPENDENCY, help_msg, { stack = job }))
     end
 
-    -- Start the job
-    job:start()
+    -- Start the job (uv.spawn might fail)
+    local spawn_ok, err = pcall(job.start, job)
+    if not spawn_ok then
+        -- Handle spawn error
+        return M._on_setup_failed(
+            Error(
+                "SETUP",
+                Error.Types.SETUP.MISSING_DEPENDENCY,
+                "Failed to spawn mcp-hub process: " .. tostring(err) .. "\n\n" .. help_msg
+            )
+        )
+    end
 
     return State.hub_instance
 end
