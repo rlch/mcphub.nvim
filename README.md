@@ -321,27 +321,26 @@ MCPHub uses a JSON configuration file to define MCP servers. The default locatio
 }
 ```
 
-#### Configuration Options
-
-- `command`: The command to run the server
-- `args`: Command arguments as array
-- `disabled`: Optional boolean to disable server
-- `disabled_tools`: Optional array of tool names to disable
-- `env`: Optional environment variables. Special values:
-  - `""` (empty string): Falls back to process.env.[VAR_NAME]
-  - `null`: Falls back to process.env.[VAR_NAME]
-  - Any other value is used as-is
-- `custom_instructions`: Optional custom instructions for the server
-
-#### Environment Variables
-
-Using empty string ("") or null in the env field provides several benefits:
-- Keep sensitive values like API keys out of version control
-- Use environment variables for deployment-specific settings
-- Override environment variables when needed
-- Share server configurations safely with placeholder values
-
 </details>
+
+##### MCP Servers Config
+
+`mcphub.nvim` supports both `stdio` (local) MCP Servers as well as `sse` (remote) MCP Servers. The configuration for each type is as follows:
+
+* Local Stdio Servers:
+    - `command`: The command to start the MCP server (required)
+    - `args`: Command arguments as array 
+    - `env`: Optional environment variables. Special values:
+      - `""` (empty string): Falls back to process.env.[VAR_NAME]
+      - `null`: Falls back to process.env.[VAR_NAME]
+      - Any other value is used as-is
+
+* Remote SSE Servers:
+    - `url`: url for remote MCP Server (required)
+    - `headers`: Optional headers for the server
+
+* There are other plugin specific options for each server like `disabled`, `disabled_tools`, `custom_instructions` etc which can be easily updated from the UI.
+
 
 
 ## 🚀 Usage
