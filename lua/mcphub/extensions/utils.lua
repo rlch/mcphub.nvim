@@ -1,4 +1,5 @@
 local M = {}
+local ui_utils = require("mcphub.utils.ui")
 
 function M.parse_params(params, action_name)
     params = params or {}
@@ -220,31 +221,49 @@ end
 function M.collect_arguments(arguments, callback)
     local values = {}
     local should_proceed = true
+
     local function collect_input(index)
         if index > #arguments and should_proceed then
-            callback(values) -- All inputs collected, call the callback
+            callback(values)
             return
         end
 
         local arg = arguments[index]
-        local arg_name = arg.name or ""
-        local required = arg.required or false
-        vim.ui.input({
-            prompt = arg_name .. (required and " (required): " or ": "),
-            default = arg.default or "",
-        }, function(input)
-            if required and (input == nil or input == "") then
-                vim.notify("Value for " .. arg_name .. " is required", vim.log.levels.ERROR)
+        local title = string.format("%s %s", arg.name, arg.required and "(required)" or "")
+        local default = arg.default or ""
+
+        local function submit_input(input)
+            vim.notify("submit" .. input)
+            if arg.required and (input == nil or input == "") then
+                vim.notify("Value for " .. arg.name .. " is required", vim.log.levels.ERROR)
                 should_proceed = false
-                return {}
+                return
             end
-            if input ~= nil then
-                values[arg_name] = input
+
+            values[arg.name] = input
+            collect_input(index + 1)
+        end
+
+        local function cancel_input()
+            vim.notify("cancel")
+            if arg.required then
+                vim.notify("Value for " .. arg.name .. " is required", vim.log.levels.ERROR)
+                should_proceed = false
+                return
             end
-            collect_input(index + 1) -- Move to the next argument
-        end)
+            values[arg.name] = nil
+            collect_input(index + 1)
+        end
+        ui_utils.multiline_input(title, default, submit_input, cancel_input)
     end
-    collect_input(1) -- Start with the first argument
+
+    if #arguments > 0 then
+        vim.defer_fn(function()
+            collect_input(1)
+        end, 0)
+    else
+        callback(values)
+    end
 end
 
 function M.setup_avante_slash_commands(enabled)
