@@ -222,7 +222,11 @@ M.ProcessHandlers = {
             end
 
             --Handle hub updates "MCP_HUB_UPDATED"
-            --
+            if parsed.type == "info" and parsed.code == "MCP_HUB_UPDATED" then
+                log.debug("Hub Updated")
+                hub:refresh()
+                return true
+            end
 
             -- Handle tool/resourcelist updates
             if

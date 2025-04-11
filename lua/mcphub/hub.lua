@@ -101,6 +101,7 @@ function MCPHub:start(opts, restart_callback)
                 "--config",
                 self.config,
                 "--auto-shutdown",
+                "--watch",
             }),
             -- detached = true,
             hide = true,
@@ -270,6 +271,11 @@ end
 ---@return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:start_mcp_server(name, opts)
     opts = opts or {}
+    if not self:update_server_config(name, {
+        disabled = false,
+    }) then
+        return
+    end
     local is_native = native.is_native_server(name)
     if is_native then
         local server = is_native
@@ -297,22 +303,19 @@ function MCPHub:start_mcp_server(name, opts)
             }, "server")
         end
 
-        -- Call start endpoint
-        self:api_request("POST", "servers/start", {
-            body = {
-                server_name = name,
-            },
-            callback = function(response, err)
-                self:refresh()
-                if opts.callback then
-                    opts.callback(response, err)
-                end
-            end,
-        })
+        -- -- Call start endpoint
+        -- self:api_request("POST", "servers/start", {
+        --     body = {
+        --         server_name = name,
+        --     },
+        --     callback = function(response, err)
+        --         self:refresh()
+        --         if opts.callback then
+        --             opts.callback(response, err)
+        --         end
+        --     end,
+        -- })
     end
-    self:update_server_config(name, {
-        disabled = false,
-    })
 end
 
 function MCPHub:emit_update(data)
@@ -333,6 +336,11 @@ end
 function MCPHub:stop_mcp_server(name, disable, opts)
     opts = opts or {}
 
+    if not self:update_server_config(name, {
+        disabled = disable or false,
+    }) then
+        return
+    end
     local is_native = native.is_native_server(name)
     if is_native then
         local server = is_native
@@ -355,25 +363,22 @@ function MCPHub:stop_mcp_server(name, disable, opts)
                 server_state = true,
             }, "server")
         end
-        -- Call stop endpoint
-        self:api_request("POST", "servers/stop", {
-            query = disable and {
-                disable = "true",
-            } or nil,
-            body = {
-                server_name = name,
-            },
-            callback = function(response, err)
-                self:refresh()
-                if opts.callback then
-                    opts.callback(response, err)
-                end
-            end,
-        })
+        -- -- Call stop endpoint
+        -- self:api_request("POST", "servers/stop", {
+        --     query = disable and {
+        --         disable = "true",
+        --     } or nil,
+        --     body = {
+        --         server_name = name,
+        --     },
+        --     callback = function(response, err)
+        --         self:refresh()
+        --         if opts.callback then
+        --             opts.callback(response, err)
+        --         end
+        --     end,
+        -- })
     end
-    self:update_server_config(name, {
-        disabled = disable or false,
-    })
 end
 
 --- Get a prompt from the server
@@ -714,19 +719,9 @@ function MCPHub:api_request(method, path, opts)
     end
 end
 
---- Update server configuration in the MCP config file
----@param server_name string Name of the server to update
----@param updates table Key-value pairs to update in the server config (command, args, env, disabled)
----@return boolean, string|nil Returns success status and error message if any
---- Load and validate config file
----@private
 function MCPHub:load_config()
     -- Validate and read current config
     local result = validation.validate_config_file(self.config)
-    if not result.ok then
-        return false, tostring(result.error)
-    end
-
     return result
 end
 
@@ -778,13 +773,15 @@ end
 ---@param server_name string Name of the server to update
 ---@param updates table|nil Key-value pairs to update in the server config or nil to remove
 ---@param opts? { callback?: function } Optional callback(success: boolean)
----@return boolean, string|nil Returns success status and error message if any
 function MCPHub:update_server_config(server_name, updates, opts)
     opts = opts or {}
     -- Load and validate current config
     local result = self:load_config()
     if not result.ok then
-        return false, tostring(result.error)
+        if result.error then
+            State:add_error(result.error)
+        end
+        return false, result.error.message
     end
 
     local config = result.json
@@ -943,10 +940,17 @@ function MCPHub:restart(callback)
         },
         callback = function(response, err)
             if err then
-                local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Restart failed", {
+                local restart_err = Error("SERVER", Error.Types.SERVER.RESTART, "Restart failed", {
                     error = err,
                 })
-                State:add_error(health_err)
+                State:add_error(restart_err)
+                -- show as connected
+                State:update({
+                    server_state = {
+                        status = "connected",
+                    },
+                }, "server")
+                self:refresh() --get latest status
                 if callback then
                     callback(false)
                 end
