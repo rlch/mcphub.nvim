@@ -280,11 +280,13 @@ end
 function UI:hard_refresh()
     if State.hub_instance then
         vim.notify("Updating all server capabilities")
-        if State.hub_instance:hard_refresh() then
-            vim.notify("Refreshed")
-        else
-            vim.notify("Failed to refresh")
-        end
+        State.hub_instance:hard_refresh(function(success)
+            if success then
+                vim.notify("Refreshed")
+            else
+                vim.notify("Failed to refresh")
+            end
+        end)
     else
         vim.notify("No hub instance available")
     end

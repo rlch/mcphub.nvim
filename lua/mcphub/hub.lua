@@ -176,29 +176,29 @@ function MCPHub:handle_server_ready(opts, is_restarting)
                 self:handle_servers_updated()
 
                 if not is_restarting then
-                    -- Register client
-                    self:register_client({
-                        callback = function(response, reg_err)
-                            if reg_err then
-                                local err =
-                                    Error("SERVER", Error.Types.SERVER.CONNECTION, "Client registration failed", {
-                                        error = reg_err,
-                                    })
-                                State:add_error(err)
-                                if opts.on_error then
-                                    opts.on_error(tostring(err))
-                                end
-                                return
-                            end
+                    -- -- Register client
+                    -- self:register_client({
+                    --     callback = function(response, reg_err)
+                    --         if reg_err then
+                    --             local err =
+                    --                 Error("SERVER", Error.Types.SERVER.CONNECTION, "Client registration failed", {
+                    --                     error = reg_err,
+                    --                 })
+                    --             State:add_error(err)
+                    --             if opts.on_error then
+                    --                 opts.on_error(tostring(err))
+                    --             end
+                    --             return
+                    --         end
 
-                            -- Fetch marketplace catalog after successful registration
-                            self:get_marketplace_catalog()
+                    --         -- Fetch marketplace catalog after successful registration
+                    --         self:get_marketplace_catalog()
 
-                            if opts.on_ready then
-                                opts.on_ready(self)
-                            end
-                        end,
-                    })
+                    --         if opts.on_ready then
+                    --             opts.on_ready(self)
+                    --         end
+                    --     end,
+                    -- })
                 end
             end
         end,
@@ -830,12 +830,12 @@ end
 function MCPHub:stop()
     self.is_shutting_down = true
 
-    -- Unregister client
-    self:api_request("POST", "client/unregister", {
-        body = {
-            clientId = self.client_id,
-        },
-    })
+    -- -- Unregister client
+    -- self:api_request("POST", "client/unregister", {
+    --     body = {
+    --         clientId = self.client_id,
+    --     },
+    -- })
 
     -- if self.is_owner then
     --     if self.server_job then
@@ -868,48 +868,56 @@ function MCPHub:is_ready()
     return self.ready
 end
 
-function MCPHub:refresh()
+function MCPHub:refresh(callback)
+    callback = callback or function() end
     if not self:ensure_ready() then
         return
     end
-    local response, err = self:get_health()
-    if err then
-        local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Refresh failed", {
-            error = err,
-        })
-        State:add_error(health_err)
-        return false
-    else
-        State:update({
-            server_state = vim.tbl_extend("force", State.server_state, {
-                servers = response.servers or {},
-            }),
-        }, "server")
-        self:handle_servers_updated()
-        return true
-    end
+    self:get_health({
+        callback = function(response, err)
+            if err then
+                local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Refresh failed", {
+                    error = err,
+                })
+                State:add_error(health_err)
+                callback(false)
+            else
+                State:update({
+                    server_state = vim.tbl_extend("force", State.server_state, {
+                        servers = response.servers or {},
+                    }),
+                }, "server")
+                self:handle_servers_updated()
+                callback(true)
+            end
+        end,
+    })
 end
 
-function MCPHub:hard_refresh()
+function MCPHub:hard_refresh(callback)
+    callback = callback or function() end
     if not self:ensure_ready() then
         return
     end
-    local response, err = self:api_request("GET", "refresh")
-    if err then
-        local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Hard Refresh failed", {
-            error = err,
-        })
-        State:add_error(health_err)
-        return false
-    else
-        State:update({
-            server_state = vim.tbl_extend("force", State.server_state, {
-                servers = response.servers or {},
-            }),
-        }, "server")
-        self:handle_servers_updated()
-        return true
-    end
+    self:api_request("GET", "refresh", {
+        callback = function(response, err)
+            if err then
+                local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Hard Refresh failed : " .. err, {
+                    error = err,
+                })
+                State:add_error(health_err)
+                callback(false)
+            else
+                State:update({
+                    server_state = vim.tbl_extend("force", State.server_state, {
+                        servers = response.servers or {},
+                    }),
+                }, "server")
+                self:handle_servers_updated()
+                callback(true)
+            end
+        end,
+    })
 end
 
 function MCPHub:restart(callback)
