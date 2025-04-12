@@ -51,6 +51,57 @@ function MainView:show_prompts_view()
     end
 end
 
+function MainView:handle_collapse()
+    -- Get current line
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local line = cursor[1]
+
+    -- Get line info
+    local type, context = self:get_line_info(line)
+
+    -- If we're on a server line, handle directly
+    if type == "server" then
+        if context.status == "connected" and self.expanded_server == context.name then
+            local server_line = line
+            self.expanded_server = nil -- collapse
+            self:draw()
+            vim.api.nvim_win_set_cursor(0, { server_line, 3 })
+            return
+        end
+    end
+
+    -- If we have an expanded server, determine if we're in its scope
+    if self.expanded_server then
+        local expanded_server_line
+        local next_server_line
+
+        -- Find the expanded server's line and next server's line
+        for i, tracked in ipairs(self.interactive_lines) do
+            if tracked.type == "server" then
+                if tracked.context.name == self.expanded_server then
+                    expanded_server_line = tracked.line
+                elseif expanded_server_line and not next_server_line then
+                    -- This is the next server after our expanded one
+                    next_server_line = tracked.line
+                    break
+                end
+            end
+        end
+
+        -- Check if current line is within expanded server's section:
+        -- After expanded server line and before next server (or end if no next server)
+        if
+            expanded_server_line
+            and line > expanded_server_line
+            and (not next_server_line or line < next_server_line)
+        then
+            self.expanded_server = nil
+            self:draw()
+            vim.api.nvim_win_set_cursor(0, { expanded_server_line, 3 })
+        end
+    end
+end
+
 function MainView:handle_action()
     local go_to_cap_line = false
     -- Get current line
@@ -166,7 +217,7 @@ function MainView:handle_cursor_move()
         if type then
             -- Add virtual text without line highlight
             self.cursor_highlight = vim.api.nvim_buf_set_extmark(self.ui.buffer, self.hover_ns, line - 1, 0, {
-                virt_text = { { context and context.hint or "Press <CR> to interact", Text.highlights.muted } },
+                virt_text = { { context and context.hint or "Press 'l' to interact", Text.highlights.muted } },
                 virt_text_pos = "eol",
             })
         end
@@ -176,7 +227,7 @@ end
 function MainView:setup_active_mode()
     if self.active_capability then
         self.keymaps = {
-            ["<CR>"] = {
+            ["l"] = {
                 action = function()
                     if self.active_capability.handle_action then
                         self.active_capability:handle_action(vim.api.nvim_win_get_cursor(0)[1])
@@ -192,7 +243,7 @@ function MainView:setup_active_mode()
                 end,
                 desc = "Open text box",
             },
-            ["<Esc>"] = {
+            ["h"] = {
                 action = function()
                     -- -- Store capability line before exiting
                     -- self.cursor_positions.capability_line = vim.api.nvim_win_get_cursor(0)
@@ -219,19 +270,25 @@ function MainView:setup_active_mode()
                 action = function()
                     self:handle_server_toggle()
                 end,
-                desc = "Toggle server",
+                desc = "Toggle",
             },
-            ["<CR>"] = {
+            ["h"] = {
+                action = function()
+                    self:handle_collapse()
+                end,
+                desc = "Collapse",
+            },
+            ["l"] = {
                 action = function()
                     self:handle_action()
                 end,
-                desc = "Expand/Collapse",
+                desc = "Expand",
             },
             ["gd"] = {
                 action = function()
                     self:show_prompts_view()
                 end,
-                desc = "View prompts",
+                desc = "Preview",
             },
         }
     end
@@ -522,7 +579,7 @@ function MainView:render_servers(line_offset)
     )
     -- Track line for interaction
     self:track_line(current_line + 1, "create_server", {
-        hint = "Press <CR> to create server",
+        hint = "Press 'l' to create server",
     })
 
     return lines

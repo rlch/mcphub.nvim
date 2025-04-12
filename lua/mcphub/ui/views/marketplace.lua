@@ -286,7 +286,7 @@ function MarketplaceView:setup_active_mode()
                 end,
                 desc = "Clear filters",
             },
-            ["<CR>"] = {
+            ["l"] = {
                 action = function()
                     local cursor = vim.api.nvim_win_get_cursor(0)
                     local server = self:get_server_at_line(cursor[1])
@@ -312,7 +312,7 @@ function MarketplaceView:setup_active_mode()
     else
         -- Details mode keymaps (simpler, focused on installation)
         self.keymaps = {
-            ["<Esc>"] = {
+            ["h"] = {
                 action = function()
                     -- Store details mode position
                     self.cursor_positions.details_mode = vim.api.nvim_win_get_cursor(0)
@@ -328,7 +328,7 @@ function MarketplaceView:setup_active_mode()
                 end,
                 desc = "Back to list",
             },
-            ["<CR>"] = {
+            ["l"] = {
                 action = function()
                     local cursor = vim.api.nvim_win_get_cursor(0)
                     local type, context = self:get_line_info(cursor[1])
@@ -475,7 +475,7 @@ function MarketplaceView:render_server_card(server, index, line_offset)
     self:track_line(line_offset, "server", {
         type = "server",
         mcpId = server.mcpId,
-        hint = "Press <CR> for details",
+        hint = "Press 'l' for details",
     })
     table.insert(lines, Text.pad_line(title_line))
 
@@ -658,7 +658,7 @@ function MarketplaceView:render_details_mode(line_offset)
                 type = "install",
                 mcpId = server.mcpId,
                 server = server,
-                hint = "Press <CR> to install",
+                hint = "Press 'l' to install",
             })
         end
         table.insert(lines, Text.pad_line(NuiLine()))

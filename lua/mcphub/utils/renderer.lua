@@ -101,17 +101,8 @@ function M.render_cap_section(items, title, server_name, type, current_line)
         end
         table.insert(lines, Text.pad_line(line, nil, 6))
 
-        local hint
-        if type == "tool" then
-            hint = is_disabled and "Press 't' to enable tool" or "Press <CR> to use tool, 't' to disable"
-        elseif type == "resource" then
-            hint = is_disabled and "Press 't' to enable resource" or "Press <CR> to access resource, 't' to disable"
-        elseif type == "resourceTemplate" then
-            hint = is_disabled and "Press 't' to enable template" or "Press <CR> to access template, 't' to disable"
-        elseif type == "prompt" then
-            hint = is_disabled and "Press 't' to enable prompt" or "Press <CR> to use prompt, 't' to disable"
-        end
-
+        local hint = is_disabled and ("Press 't' to enable " .. type)
+            or string.format("Press 'l' to use %s, 't' to disable", type)
         table.insert(mappings, {
             line = current_line + #lines,
             type = type,
@@ -146,8 +137,7 @@ function M.render_server_capabilities(server, lines, current_line, config_source
     elseif server.status == "disconnected" then
         hint = "Press 't' to disable server"
     else
-        hint = view.expanded_server == server.name and "Press <CR> to collapse"
-            or "Press <CR> to expand, 't' to disable"
+        hint = view.expanded_server == server.name and "Press 'h' to collapse" or "Press 'l' to expand, 't' to disable"
     end
 
     view:track_line(current_line, "server", {
@@ -186,7 +176,7 @@ function M.render_server_capabilities(server, lines, current_line, config_source
             server_name = server.name,
             disabled = is_disabled,
             name = Text.icons.instructions .. " Custom Instructions",
-            hint = is_disabled and "Press 't' to enable instructions" or "Press <CR> to edit, 't' to disable",
+            hint = is_disabled and "Press 't' to enable instructions" or "Press 'l' to edit, 't' to disable",
         })
         table.insert(lines, Text.empty_line())
         current_line = current_line + 1
@@ -256,7 +246,7 @@ function M.render_server_line(server, active)
     line:append(status.icon, status.hl)
     line:append(server.displayName or server.name, hl)
     if server.transportType == "sse" then
-        line:append(" " .. (server.status == "connected" and Text.icons.antenna or Text.icons.antenna_off), hl)
+        line:append(" " .. (server.status == "connected" and Text.icons.sse or Text.icons.sse), hl)
     else
     end
 
