@@ -119,6 +119,16 @@ function UI:new(opts)
         end,
     })
 
+    -- Handle window resize
+    vim.api.nvim_create_autocmd("VimResized", {
+        group = group,
+        callback = function()
+            if instance.window and vim.api.nvim_win_is_valid(instance.window) then
+                instance:resize_window()
+            end
+        end,
+    })
+
     -- Handle window close
     vim.api.nvim_create_autocmd("WinClosed", {
         group = group,
@@ -167,16 +177,13 @@ function UI:create_buffer()
     return self.buffer
 end
 
---- Create a new window for the UI
+--- Calculate window dimensions and position
 ---@private
-function UI:create_window()
-    if not self.buffer or not vim.api.nvim_buf_is_valid(self.buffer) then
-        self:create_buffer()
-    end
-
+function UI:calculate_window_dimensions()
     local min_width = 50
     local min_height = 10
     local win_opts = UI.opts.window
+
     -- Calculate dimensions
     local width = parse_size(win_opts.width, vim.o.columns)
     width = math.max(min_width, width)
@@ -188,13 +195,55 @@ function UI:create_window()
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
-    -- Create floating window
-    self.window = vim.api.nvim_open_win(self.buffer, true, {
-        relative = win_opts.relative,
+    return {
         width = width,
         height = height,
         row = row,
         col = col,
+    }
+end
+
+--- Resize the window when editor is resized
+---@private
+function UI:resize_window()
+    if not self.window or not vim.api.nvim_win_is_valid(self.window) then
+        return
+    end
+
+    local dims = self:calculate_window_dimensions()
+    local win_opts = UI.opts.window
+
+    -- Update window dimensions and position
+    vim.api.nvim_win_set_config(self.window, {
+        relative = win_opts.relative,
+        width = dims.width,
+        height = dims.height,
+        row = dims.row,
+        col = dims.col,
+        style = "minimal",
+        border = win_opts.border,
+        zindex = win_opts.zindex,
+    })
+
+    -- Force a re-render of the current view
+    self:render()
+end
+
+function UI:create_window()
+    if not self.buffer or not vim.api.nvim_buf_is_valid(self.buffer) then
+        self:create_buffer()
+    end
+
+    local dims = self:calculate_window_dimensions()
+    local win_opts = UI.opts.window
+
+    -- Create floating window
+    self.window = vim.api.nvim_open_win(self.buffer, true, {
+        relative = win_opts.relative,
+        width = dims.width,
+        height = dims.height,
+        row = dims.row,
+        col = dims.col,
         style = "minimal",
         border = win_opts.border,
         zindex = win_opts.zindex,
