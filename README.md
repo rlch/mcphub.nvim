@@ -181,9 +181,11 @@ Thank you to the following amazing people:
 <details>
 <summary><strong>Performance and Reliability</strong></summary>
 
+- Full multi-instance support with synchronized state
+- Configuration file watching with real-time updates
+- Smart shutdown handling (configurable delay)
 - Parallel startup for improved performance
 - Automatic server lifecycle management
-- Smart shutdown handling with configurable delay
 </details>
 
 <details>
@@ -241,6 +243,7 @@ require("mcphub").setup({
         },
     },
 
+
     -- Default window settings
     ui = {
         window = {
@@ -271,6 +274,8 @@ require("mcphub").setup({
     --cmdArgs = {"/path/to/node_modules/mcp-hub/dist/cli.js"},    -- Additional arguments for the command
     -- In cases where mcp-hub server is hosted somewhere, set this to the server URL e.g `http://mydomain.com:customport` or `https://url_without_need_for_port.com`
     -- server_url = nil, -- defaults to `http://localhost:port`
+    -- Multi-instance Support
+    shutdown_delay = 600000, -- Delay in ms before shutting down the server when last instance closes (default: 10 minutes)
 
     -- Logging configuration
     log = {
@@ -312,6 +317,7 @@ MCPHub uses a JSON configuration file to define MCP servers. The default locatio
 }
 ```
 
+Configuration file (`~/.config/mcphub/servers.json`) is watched for changes and updates are applied automatically in real-time across all Neovim instances.
 </details>
 
 ##### MCP Servers Config
@@ -858,21 +864,24 @@ MCPHub.nvim uses an Express server to manage MCP servers and handle client reque
 
    - Checks for mcp-hub command installation
    - Verifies version compatibility
-   - Starts mcp-hub with provided port and config file
+   - Checks if server is already running (multi-instance support)
+   - If not running, starts mcp-hub with config file watching enabled
    - Creates Express server at `http://localhost:[config.port]` or at `config.server_url`
 
 2. After successful setup:
 
    - Calls on_ready callback with hub instance
-   - Hub instance provides REST API interface
-   - UI updates in real-time via `:MCPHub` command
+   - Hub instance provides REST API interface 
+   - Real-time UI updates via `:MCPHub` command
+   - Configuration changes auto-sync across instances
 
 3. Express Server Features:
 
+   - Real-time config file watching and syncing
    - Manages MCP server configurations
    - Handles tool execution requests
    - Provides resource access
-   - Multi-client support
+   - Multi-instance support with shared state
    - Automatic cleanup
 
 4. When Neovim instances close:
@@ -1028,4 +1037,3 @@ For detailed documentation, visit our [Wiki](https://github.com/ravitemer/mcphub
 - [Example Implementations](https://github.com/ravitemer/mcphub.nvim/wiki/Example-Servers)
 - [API Reference](https://github.com/ravitemer/mcphub.nvim/wiki/API-Reference)
 - [Troubleshooting Guide](https://github.com/ravitemer/mcphub.nvim/wiki/Troubleshooting)
-

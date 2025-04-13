@@ -6,17 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.0] - 2025-04-13
+
+### Added
+- Complete multi-instance support
+  * Complete support for opening multiple neovim instance at a time
+  * MCP Hubs in all neovim instances are always in sync (toggling something or change changing config in one neovim will auto syncs other neovim instances)
+  * Changed lualine extension to adapt to these changes
+
+- Added file watching for servers.json
+  * Watches config file and updates necessary servers. No need to exit and enter neovim or press "R" to reload any servers after your servers.json file is changed.
+  * Config changes apply instantly without restart
+  * Changes sync across all running instances
+  * Smart reload that only updates affected servers
+
+- Added smart shutdown with delay
+  * Previoulsy when we exit neovim mcphub.nvim stops the server and when we enter neovim it starts the server.
+  * We can now set shutdown_delay (in millisecond) to let the server wait before shutdown. If we enter neovim again within this time it will cancel the timer.
+  * Defaults to 10 minutes. You can set this to as long as you want to make it run essentially as a systemd service
+
+- Improved UI navigation
+  * Added vim-style keys (hjkl) for movement
+
+### Changed
+- Updated MCP Hub to v3.0.0 for multi-instance support
+* Auto-resize windows on editor resize
+
 ## [4.6.1] - 2025-04-10
 
 ### Added 
 - In cases where mcp-hub server is hosted somewhere, you can set `config.server_url` e.g `http://mydomain.com:customport` or `https://url_without_need_for_port.com`
 - `server_url` defaults to `http://localhost:{config.port}`
-
-### Added
-
-- Added support for Windows platform
-- Added configurable window options (#68)
-- Added examples to servers prompt for function based tools to improve model responses
 
 ## [4.6.0] - 2025-04-09
 
