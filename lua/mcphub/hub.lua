@@ -20,6 +20,7 @@ local RESOURCE_TIMEOUT = 30000 -- 30s for resource access
 --- @field port number The port number for the MCP Hub server
 --- @field server_url string In case of hosting mcp-hub somewhere, the url with `https://mydomain.com:5858`
 --- @field config string Path to the MCP servers configuration file
+--- @field shutdown_delay number Delay in seconds before shutting down the server
 --- @field cmd string The cmd to invoke the MCP Hub server
 --- @field cmdArgs table The args to pass to the cmd to spawn the server
 --- @field ready boolean Whether the connection to server is ready
@@ -41,6 +42,7 @@ function MCPHub:new(opts)
     self.port = opts.port
     self.server_url = opts.server_url
     self.config = opts.config
+    self.shutdown_delay = opts.shutdown_delay
     self.cmd = opts.cmd
     self.cmdArgs = opts.cmdArgs
     self.ready = false
@@ -84,6 +86,8 @@ function MCPHub:start(opts, restart_callback)
                 "--config",
                 self.config,
                 "--auto-shutdown",
+                "--shutdown-delay",
+                self.shutdown_delay or 0,
                 "--watch",
             }),
             hide = true,

@@ -17,6 +17,7 @@ local M = {
     add_prompt = native.add_prompt,
 }
 
+local SHUTDOWN_DELAY = 10 * 60 * 1000 -- 10 minutes
 --- Setup MCPHub plugin with error handling and validation
 --- @param opts? { port?: number, server_url?: string, cmd?: string, native_servers? : table, cmdArgs?: table, config?: string, log?: table, on_ready?: fun(hub: MCPHub), on_error?: fun(err: string) }
 function M.setup(opts)
@@ -35,6 +36,7 @@ function M.setup(opts)
         port = 37373, -- Default port for MCP Hub
         server_url = nil, -- In cases where mcp-hub is hosted somewhere, set this to the server URL e.g `http://mydomain.com:customport` or `https://url_without_need_for_port.com`
         config = vim.fn.expand("~/.config/mcphub/servers.json"), -- Default config location
+        shutdown_delay = SHUTDOWN_DELAY, -- Delay before shutting down the mcp-hub
         native_servers = {},
         auto_approve = false,
         use_bundled_binary = false, -- Whether to use bundled mcp-hub binary
