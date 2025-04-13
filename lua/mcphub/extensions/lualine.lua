@@ -125,7 +125,7 @@ function M:update_status()
     local status_icon, status_hl = self:get_status_display()
 
     -- Show either the spinner or the number of active servers
-    local count_or_spinner = (vim.g.mcphub_executing or M.is_connecting()) and spinner_frames[current_frame]
+    local count_or_spinner = vim.g.mcphub_executing and spinner_frames[current_frame]
         or tostring(vim.g.mcphub_active_servers or 0)
     -- Format the status line
     return self:format_hl(status_icon .. " " .. count_or_spinner .. " ", status_hl)
