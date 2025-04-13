@@ -10,6 +10,7 @@ local M = {}
 ---@class ValidationResult
 ---@field ok boolean
 ---@field error? MCPError
+---
 
 --- Validate setup options
 ---@param opts table
@@ -83,7 +84,7 @@ end
 
 --- Validate MCP config file
 ---@param path string
----@return ValidationResult
+---@return table {ok : string, json?: string, content?: string}
 function M.validate_config_file(path)
     if not path then
         return {
@@ -103,7 +104,7 @@ function M.validate_config_file(path)
                 error = Error(
                     "SETUP",
                     Error.Types.SETUP.INVALID_CONFIG,
-                    string.format("Config file not found or creation failed: %s. Reason: %s", path, create_err or err)
+                    string.format("Config file not found or creation failed: %s. Reason: %s", path, create_err)
                 ),
             }
         else

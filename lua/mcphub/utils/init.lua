@@ -22,6 +22,26 @@ function M.clean_args(args)
         :totable()
 end
 
+local uid = 0
+function M.gen_dump_path()
+    uid = uid + 1
+    local P = require("plenary.path")
+    local path
+    local id = string.gsub("xxxx4xxx", "[xy]", function(l)
+        local v = (l == "x") and math.random(0, 0xf) or math.random(0, 0xb)
+        return string.format("%x", v)
+    end)
+    if P.path.sep == "\\" then
+        path = string.format("%s\\AppData\\Local\\Temp\\plenary_curl_%s.headers", os.getenv("USERPROFILE"), id)
+    else
+        local temp_dir = os.getenv("XDG_RUNTIME_DIR") or "/tmp"
+        path = temp_dir .. "/plenary_curl_" .. id .. ".headers"
+    end
+    local nvim_pid = vim.uv.os_getpid()
+    local dump_file = path .. nvim_pid .. uid
+    return { "-D", dump_file .. ".headers" }
+end
+
 --- Format timestamp relative to now
 ---@param timestamp number Unix timestamp
 ---@return string

@@ -1,10 +1,11 @@
+local constants = require("mcphub.utils.constants")
+local log = require("mcphub.utils.log")
+
 ---@brief [[
 --- Global state management for MCPHub
 --- Handles setup, server, and UI state
 ---@brief ]]
 ---@class MCPState
-local log = require("mcphub.utils.log")
-
 local State = {
     -- Setup state
     setup_state = "not_started",
@@ -21,7 +22,7 @@ local State = {
 
     -- Marketplace state
     marketplace_state = {
-        status = "loading", -- idle/loading/error
+        status = "empty", -- empty/loaded/loading/error
         catalog = {
             items = {},
             last_updated = nil,
@@ -37,7 +38,7 @@ local State = {
 
     -- Server state
     server_state = {
-        status = "disconnected", -- disconnected/connecting/connected
+        state = constants.HubState.STARTING, -- disconnected/connecting/connected
         pid = nil, -- Server process ID when running
         started_at = nil, -- When server was started
         servers = {}, -- Regular MCP servers
@@ -68,6 +69,10 @@ local State = {
         --on_servers_updated
     },
 }
+function State:is_connected()
+    return self.server_state.state == constants.HubState.READY
+        or self.server_state.state == constants.HubState.RESTARTED
+end
 
 function State:reset()
     State.server_state = {
@@ -262,6 +267,15 @@ function State:add_server_output(entry)
     self:notify_subscribers({
         logs = true,
     }, "logs")
+end
+
+function State:update_hub_state(status, ...)
+    self:update({
+        server_state = {
+            state = status,
+            unpack(... or {}),
+        },
+    }, "server")
 end
 
 function State:subscribe(callback, types)

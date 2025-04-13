@@ -1,8 +1,118 @@
 local Error = require("mcphub.utils.errors")
 local State = require("mcphub.state")
+local constants = require("mcphub.utils.constants")
 local log = require("mcphub.utils.log")
 
 local M = {}
+
+local function format_config_changes(changes)
+    local removed = changes.removed or {}
+    local added = changes.added or {}
+    local modified = changes.modified or {}
+    local msg = ""
+    if #added > 0 then
+        msg = msg .. "Added:\n"
+        for _, item in ipairs(added) do
+            msg = msg .. string.format("  - %s\n", item)
+        end
+    end
+    if #modified > 0 then
+        msg = msg .. "Modified:\n"
+        for _, item in ipairs(modified) do
+            msg = msg .. string.format("  - %s\n", item)
+        end
+    end
+    if #removed > 0 then
+        msg = msg .. "Removed:\n"
+        for _, item in ipairs(removed) do
+            msg = msg .. string.format("  - %s\n", item)
+        end
+    end
+    return msg
+end
+
+-- SSE Event handlers
+M.SSEHandlers = {
+    handle_sse_event = function(event, data, hub)
+        local is_ui_shown = State.ui_instance and State.ui_instance.is_shown or false
+        if event == constants.EventTypes.HEARTBEAT then
+            log.trace("Heartbeat event received")
+        else
+            log.debug(string.format("Event: %s ", event))
+        end
+        if event == constants.EventTypes.HUB_STATE then
+            local state = data.state
+            if state then
+                State:update_hub_state(state)
+            end
+            if state == constants.HubState.ERROR then
+                hub:handle_hub_error("Hub entered error state: " .. (data.message or "unknown error"))
+            elseif state == constants.HubState.STOPPED then
+                hub:handle_hub_error("Hub stopped")
+            elseif state == constants.HubState.RESTARTING then
+                hub:handle_hub_restarting()
+            elseif state == constants.HubState.READY or state == constants.HubState.RESTARTED then
+                hub:handle_hub_ready()
+            end
+        elseif event == constants.EventTypes.SUBSCRIPTION_EVENT then
+            local is_capability_type = vim.tbl_contains({
+                constants.SubscriptionTypes.TOOL_LIST_CHANGED,
+                constants.SubscriptionTypes.RESOURCE_LIST_CHANGED,
+                constants.SubscriptionTypes.PROMPT_LIST_CHANGED,
+            }, data.type)
+            if is_capability_type then
+                hub:handle_capability_updates(data)
+            elseif data.type == constants.SubscriptionTypes.CONFIG_CHANGED then
+                if not is_ui_shown then
+                    local has_significant_changes = data.isSignificant == true
+                    if not has_significant_changes then
+                        vim.notify("MCP Hub Config Changed: No Significant changes found", vim.log.levels.INFO, {
+                            title = "MCP Hub",
+                        })
+                    end
+                end
+                hub:refresh_config()
+            elseif data.type == constants.SubscriptionTypes.SERVERS_UPDATING then
+                if not is_ui_shown then
+                    vim.notify(
+                        "\nMCP Hub Config Changed:\n" .. format_config_changes(data.changes or {}),
+                        vim.log.levels.INFO
+                    )
+                end
+                hub:refresh()
+            elseif data.type == constants.SubscriptionTypes.SERVERS_UPDATED then
+                if not is_ui_shown then
+                    vim.notify("MCP Hub Servers Updated", vim.log.levels.INFO)
+                end
+                hub:refresh()
+            end
+        elseif event == constants.EventTypes.LOG then
+            -- Use message timestamp if valid ISO string, otherwise system time
+            local timestamp = vim.loop.now()
+            if data.timestamp then
+                -- Try to convert ISO string to unix timestamp
+                local success, ts = pcall(function()
+                    return vim.fn.strptime("%Y-%m-%dT%H:%M:%S", data.timestamp)
+                end)
+                if success then
+                    timestamp = ts
+                end
+            end
+            State:add_server_output({
+                type = data.type,
+                message = data.message,
+                code = data.code,
+                timestamp = timestamp,
+                data = data.data,
+            })
+            -- Handle errors specially
+            if data.type == "error" then
+                local error_obj = Error("SERVER", data.code or Error.Types.SERVER.CONNECTION, data.message, data.data)
+                State:add_error(error_obj)
+            end
+        end
+    end,
+}
 
 -- Parameter type handlers for validation and conversion
 M.TypeHandlers = {
@@ -144,106 +254,6 @@ M.TypeHandlers = {
             return "array"
         end,
     },
-}
-
--- Process handlers for server process
-M.ProcessHandlers = {
-    --- Handle server process output
-    --- @param data string Raw output data
-    --- @param hub MCPHub The hub instance
-    --- @param opts table Options including callbacks
-    --- @return boolean handled Whether the data was handled
-    handle_output = function(data, hub, opts)
-        if not data then
-            return ""
-        end
-
-        -- Try to parse as JSON
-        local ok, parsed = pcall(vim.json.decode, data)
-        if not ok then
-            -- Not JSON, treat as raw log
-            State:add_server_output({
-                type = "info", -- Default to info for non-JSON messages
-                message = data,
-                timestamp = vim.loop.now(), -- Use system time if no timestamp
-                data = nil,
-            })
-            return data
-        end
-
-        -- Handle structured server logs
-        if parsed.type then
-            -- Use message timestamp if valid ISO string, otherwise system time
-            local timestamp = vim.loop.now()
-            if parsed.timestamp then
-                -- Try to convert ISO string to unix timestamp
-                local success, ts = pcall(function()
-                    return vim.fn.strptime("%Y-%m-%dT%H:%M:%S", parsed.timestamp)
-                end)
-                if success then
-                    timestamp = ts
-                end
-            end
-
-            State:add_server_output({
-                type = parsed.type, -- warn/error/info/debug
-                message = parsed.message,
-                code = parsed.code,
-                timestamp = timestamp,
-                data = parsed.data,
-            })
-
-            -- Special error handling
-            if parsed.type == "error" then
-                local error_obj =
-                    Error("SERVER", parsed.code or Error.Types.SERVER.CONNECTION, parsed.message, parsed.data)
-                State:add_error(error_obj)
-                -- log.error(tostring(error_obj))
-                hub:handle_server_error(tostring(error_obj), opts)
-                return true
-            end
-
-            -- Log at appropriate level
-            log[parsed.type]({
-                code = parsed.code or "SERVER_" .. string.upper(parsed.type),
-                message = parsed.message,
-                data = parsed.data,
-            })
-
-            -- Handle ready state (backward compatibility)
-            if
-                parsed.type == "info"
-                and parsed.message == "MCP_HUB_STARTED"
-                and parsed.data
-                and parsed.data.status == "ready"
-            then
-                hub:handle_server_ready(opts)
-                return true
-            end
-
-            --Handle hub updates "MCP_HUB_UPDATED"
-            if parsed.type == "info" and parsed.code == "MCP_HUB_UPDATED" then
-                log.debug("Hub Updated")
-                hub:refresh()
-                return true
-            end
-
-            -- Handle tool/resourcelist updates
-            if
-                parsed.type == "info"
-                and (
-                    parsed.code == "TOOL_LIST_CHANGED"
-                    or parsed.code == "RESOURCE_LIST_CHANGED"
-                    or parsed.code == "PROMPT_LIST_CHANGED"
-                )
-            then
-                hub:handle_capability_updates(parsed.data)
-                return true
-            end
-        end
-
-        return true
-    end,
 }
 
 --- API response handlers

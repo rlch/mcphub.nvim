@@ -7,6 +7,7 @@ local NuiLine = require("mcphub.utils.nuiline")
 local State = require("mcphub.state")
 local Text = require("mcphub.utils.text")
 local View = require("mcphub.ui.views.base")
+local constants = require("mcphub.utils.constants")
 local native = require("mcphub.native")
 local renderer = require("mcphub.utils.renderer")
 local utils = require("mcphub.utils")
@@ -401,36 +402,6 @@ function MainView:get_initial_cursor_position()
     return #lines + 1
 end
 
---- Render server status section
----@return NuiLine[]
-function MainView:render_hub_status()
-    local lines = {}
-    -- Server state header and status
-    local status = renderer.get_server_status_info(State.server_state.status)
-    local status_line = NuiLine():append(status.icon, status.hl):append(({
-        connected = "Connected",
-        connecting = "Connecting...",
-        disconnected = "Disconnected",
-        restarting = "Restarting...",
-    })[State.server_state.status] or "Unknown", status.hl)
-
-    if State.server_state.started_at then
-        status_line:append(" " .. utils.format_relative_time(State.server_state.started_at), Text.highlights.muted)
-    end
-    table.insert(lines, Text.pad_line(status_line))
-    table.insert(lines, self:divider())
-    if State.server_state.status ~= "connected" then
-        vim.list_extend(lines, renderer.render_server_entries(State.server_output.entries, false))
-        local errors = renderer.render_hub_errors(nil, false)
-        if #errors > 0 then
-            vim.list_extend(lines, errors)
-        end
-    end
-
-    table.insert(lines, Text.empty_line())
-    return lines
-end
-
 --- Sort servers by status (connected first, then disconnected, disabled last) and alphabetically within each group
 ---@param servers table[] List of servers to sort
 local function sort_servers(servers)
@@ -501,7 +472,7 @@ function MainView:render_servers(line_offset)
     local left_section = NuiLine():append("MCP Servers", Text.highlights.title)
 
     -- Add token count on MCP Servers section if connected
-    if State.server_state.status == "connected" and State.hub_instance and State.hub_instance:is_ready() then
+    if State:is_connected() and State.hub_instance and State.hub_instance:is_ready() then
         local prompts = State.hub_instance:generate_prompts()
         if prompts then
             -- Calculate total tokens from all prompts
@@ -626,6 +597,10 @@ function MainView:before_leave()
     View.before_leave(self)
 end
 
+function MainView:should_show_logs()
+    return not vim.tbl_contains({ constants.HubState.READY, constants.HubState.RESTARTED }, State.server_state.state)
+end
+
 function MainView:render()
     -- Handle special states from base view
     if State.setup_state == "failed" or State.setup_state == "in_progress" then
@@ -633,9 +608,16 @@ function MainView:render()
     end
     -- Get base header
     local lines = self:render_header(false)
-    if State.server_state.status ~= "connected" then
-        -- Server status section
-        vim.list_extend(lines, self:render_hub_status())
+    if self:should_show_logs() then
+        local state_info = renderer.get_hub_info(State.server_state.state)
+        local breadcrumb_line = NuiLine():append(state_info.icon, state_info.hl):append(state_info.desc, state_info.hl)
+        table.insert(lines, Text.pad_line(breadcrumb_line))
+        table.insert(lines, self:divider())
+        vim.list_extend(lines, renderer.render_server_entries(State.server_output.entries, false))
+        local errors = renderer.render_hub_errors(nil, false)
+        if #errors > 0 then
+            vim.list_extend(lines, errors)
+        end
         return lines
     end
     -- Handle capability mode

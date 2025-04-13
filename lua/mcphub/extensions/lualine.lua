@@ -2,14 +2,22 @@
 --NOTE: Having cmd = "MCPHub" or lazy = true in user's lazy config, and adding lualine component using require("mcphub.extensions.lualine") will start the hub indirectly.
 --]]
 local M = require("lualine.component"):extend()
--- local Text = require("mcphub.utils.text")
--- Spinner animation frames
 local spinner_frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
 local spinner_interval = 80 -- ms between frames
 local timer = nil
 local current_frame = 1
 
-vim.g.mcphub_status = "connecting"
+M.HubState = {
+    STARTING = "starting",
+    READY = "ready",
+    ERROR = "error",
+    RESTARTING = "restarting",
+    RESTARTED = "restarted",
+    STOPPED = "stopped",
+    STOPPING = "stopping",
+}
+
+vim.g.mcphub_status = M.HubState.STARTING
 -- Initialize the component
 function M:init(options)
     M.super.init(self, options)
@@ -26,10 +34,8 @@ function M:create_autocommands()
         callback = function(args)
             self:manage_spinner()
             if args.data then
-                vim.g.mcphub_status = args.data.status
+                vim.g.mcphub_status = args.data.state
                 vim.g.mcphub_active_servers = args.data.active_servers
-                vim.g.mcphub_total_tools = args.data.total_tools
-                vim.g.mcphub_total_resources = args.data.total_resources
             end
         end,
     })
@@ -41,21 +47,27 @@ function M:create_autocommands()
         callback = function(args)
             -- Update based on event pattern
             if args.match == "MCPHubToolStart" then
+                vim.g.mcphub_executing = true
                 vim.g.mcphub_tool_active = true
                 vim.g.mcphub_tool_info = args.data
             elseif args.match == "MCPHubToolEnd" then
+                vim.g.mcphub_executing = false
                 vim.g.mcphub_tool_active = false
                 vim.g.mcphub_tool_info = nil
             elseif args.match == "MCPHubResourceStart" then
+                vim.g.mcphub_executing = true
                 vim.g.mcphub_resource_active = true
                 vim.g.mcphub_resource_info = args.data
             elseif args.match == "MCPHubResourceEnd" then
+                vim.g.mcphub_executing = false
                 vim.g.mcphub_resource_active = false
                 vim.g.mcphub_resource_info = nil
             elseif args.match == "MCPHubPromptStart" then
+                vim.g.mcphub_executing = true
                 vim.g.mcphub_prompt_active = true
                 vim.g.mcphub_prompt_info = args.data
             elseif args.match == "MCPHubPromptEnd" then
+                vim.g.mcphub_executing = false
                 vim.g.mcphub_prompt_active = false
                 vim.g.mcphub_prompt_info = nil
             end
@@ -65,11 +77,16 @@ function M:create_autocommands()
     })
 end
 
+function M.is_connected()
+    return vim.g.mcphub_status == M.HubState.READY or vim.g.mcphub_status == M.HubState.RESTARTED
+end
+
+function M.is_connecting()
+    return vim.g.mcphub_status == M.HubState.STARTING or vim.g.mcphub_status == M.HubState.RESTARTING
+end
+
 function M:manage_spinner()
-    local should_show = vim.g.mcphub_tool_active
-        or vim.g.mcphub_resource_active
-        or vim.g.mcphub_prompt_active
-        or vim.g.mcphub_status == "connecting"
+    local should_show = vim.g.mcphub_executing and M.is_connected()
     if should_show and not timer then
         timer = vim.loop.new_timer()
         timer:start(
@@ -90,10 +107,8 @@ end
 
 -- Get appropriate status icon and highlight
 function M:get_status_display()
-    local status = vim.g.mcphub_status or "disconnected"
     local tower = "󰐻"
-    return tower,
-        status == "connected" and "DiagnosticInfo" or status == "connecting" and "DiagnosticWarn" or "DiagnosticError"
+    return tower, M.is_connected() and "DiagnosticInfo" or M.is_connecting() and "DiagnosticWarn" or "DiagnosticError"
 end
 
 -- Format with highlight
@@ -110,10 +125,8 @@ function M:update_status()
     local status_icon, status_hl = self:get_status_display()
 
     -- Show either the spinner or the number of active servers
-    local count_or_spinner = (vim.g.mcphub_tool_active or vim.g.mcphub_resource_active or vim.g.mcphub_prompt_active)
-            and spinner_frames[current_frame]
+    local count_or_spinner = (vim.g.mcphub_executing or M.is_connecting()) and spinner_frames[current_frame]
         or tostring(vim.g.mcphub_active_servers or 0)
-
     -- Format the status line
     return self:format_hl(status_icon .. " " .. count_or_spinner .. " ", status_hl)
 end

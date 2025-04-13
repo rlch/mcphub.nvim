@@ -45,6 +45,8 @@ Error.Types = {
         API_ERROR = "API_ERROR",
         CURL_ERROR = "CURL_ERROR",
         TIMEOUT = "TIMEOUT",
+        SERVER_START = "SERVER_START",
+        SSL_ERROR = "SSL_ERROR",
     },
     RUNTIME = {
         INVALID_STATE = "INVALID_STATE",

@@ -5,6 +5,7 @@
 ---@class MCPHubUI
 local State = require("mcphub.state")
 local Text = require("mcphub.utils.text")
+local constants = require("mcphub.utils.constants")
 local hl = require("mcphub.utils.highlights")
 local utils = require("mcphub.utils")
 
@@ -90,7 +91,7 @@ function UI:new(opts)
                     or k == "errors"
                 then
                     --if connected then only update the logs view for logs updates
-                    if k == "logs" and State.server_state.status == "connected" then
+                    if k == "logs" and State:is_connected() then
                         if instance.current_view == "logs" then
                             should_update = true
                         else

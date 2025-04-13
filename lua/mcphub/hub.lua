@@ -1,7 +1,9 @@
 local Error = require("mcphub.utils.errors")
 local Job = require("plenary.job")
 local State = require("mcphub.state")
+local constants = require("mcphub.utils.constants")
 local curl = require("plenary.curl")
+
 local handlers = require("mcphub.utils.handlers")
 local log = require("mcphub.utils.log")
 local native = require("mcphub.native")
@@ -22,9 +24,10 @@ local RESOURCE_TIMEOUT = 30000 -- 30s for resource access
 --- @field cmdArgs table The args to pass to the cmd to spawn the server
 --- @field ready boolean Whether the connection to server is ready
 --- @field server_job Job|nil The server process job if we started it
---- @field client_id string Unique identifier for this client
 --- @field is_owner boolean Whether this instance started the server
 --- @field is_shutting_down boolean Whether we're in the process of shutting down
+--- @field on_ready fun(hub)
+--- @field on_error fun(error:string)
 local MCPHub = {}
 MCPHub.__index = MCPHub
 
@@ -44,18 +47,8 @@ function MCPHub:new(opts)
     self.server_job = nil
     self.is_owner = false -- Whether we started the server
     self.is_shutting_down = false
-
-    -- Generate unique client ID
-    self.client_id = string.format("%s_%s_%s", vim.fn.getpid(), vim.fn.localtime(), vim.fn.rand())
-
-    -- Update state
-    State:update({
-        server_state = {
-            status = "disconnected",
-            started_at = nil,
-            pid = nil,
-        },
-    }, "server")
+    self.on_ready = opts.on_ready or function() end
+    self.on_error = opts.on_error or function() end
 
     return self
 end
@@ -66,32 +59,22 @@ function MCPHub:start(opts, restart_callback)
     opts = opts or State.config
 
     -- Update state
-    State:update({
-        server_state = {
-            status = "connecting",
-        },
-    }, "server")
-
-    self:emit_update({
-        status = "connecting",
-        active_servers = 0,
-        total_tools = 0,
-        total_resources = 0,
-    })
-    local has_called_restart_callback = false
+    State:update_hub_state(constants.HubState.STARTING)
 
     -- Check if server is already running
-    self:check_server(function(is_running)
+    self:check_server(function(is_running, is_our_server)
         if is_running then
-            log.debug("Server already running")
-            self:handle_server_ready(opts)
+            if not is_our_server then
+                self:handle_hub_error("Port in use by non-MCP Hub server")
+                return
+            end
+            log.debug("MCP Hub already running")
+            self:connect_sse()
             return
         end
 
-        -- Start new server
-        -- We're starting the server, mark as owner
+        -- Try to start new server
         self.is_owner = true
-
         self.server_job = Job:new({
             command = self.cmd,
             args = utils.clean_args({
@@ -103,38 +86,31 @@ function MCPHub:start(opts, restart_callback)
                 "--auto-shutdown",
                 "--watch",
             }),
-            -- detached = true,
             hide = true,
-            on_stdout = vim.schedule_wrap(function(_, data)
-                if has_called_restart_callback == false then
-                    if restart_callback then
-                        restart_callback(true)
-                        has_called_restart_callback = true
-                    end
-                end
-                handlers.ProcessHandlers.handle_output(data, self, opts)
-            end),
             on_stderr = vim.schedule_wrap(function(_, data)
-                handlers.ProcessHandlers.handle_output(data, self, opts)
+                if data then
+                    log.debug("Server stderr:" .. data)
+                end
+            end),
+            on_start = vim.schedule_wrap(function()
+                self:connect_sse()
+            end),
+            on_stdout = vim.schedule_wrap(function(_, data)
+                -- if data then
+                --     log.debug("Server stdout:" .. data)
+                -- end
             end),
             on_exit = vim.schedule_wrap(function(j, code)
-                if code ~= 0 then
-                    self:handle_server_error("Server process exited with code " .. (code or ""), opts)
+                if code ~= 0 and not self.is_shutting_down then
+                    local stderr = table.concat(j:stderr_result() or {}, "\n")
+                    if stderr:match("EADDRINUSE") then
+                        -- Port was just taken, try connecting
+                        log.debug("Port taken, trying to connect...")
+                    else
+                        local err_msg = "Server process exited with code " .. code
+                        self:handle_hub_error(err_msg .. "\n" .. stderr, opts)
+                    end
                 end
-                State:update({
-                    server_state = {
-                        status = "disconnected",
-                        pid = nil,
-                    },
-                }, "server")
-                self:emit_update({
-                    status = "disconnected",
-                    active_servers = 0,
-                    total_tools = 0,
-                    total_resources = 0,
-                })
-                self.ready = false
-                self.server_job = nil
             end),
         })
 
@@ -142,85 +118,43 @@ function MCPHub:start(opts, restart_callback)
     end)
 end
 
---- Handle server ready state
---- @param opts? { on_ready: function, on_error: function }
-function MCPHub:handle_server_ready(opts, is_restarting)
+function MCPHub:handle_hub_ready()
     self.ready = true
-    opts = opts or {}
-
-    -- Update state
-    State:update({
-        server_state = {
-            status = "connected",
-            started_at = vim.loop.now(),
-            pid = self.server_job and self.server_job.pid,
-        },
-    }, "server")
-
-    -- update the state
-    self:get_health({
-        callback = function(response, err)
-            if err then
-                if self:is_ready() then
-                    local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Health check failed", {
-                        error = err,
-                    })
-                    State:add_error(health_err)
-                end
-            else
-                State:update({
-                    server_state = vim.tbl_extend("force", State.server_state, {
-                        servers = response.servers or {},
-                    }),
-                }, "server")
-                self:handle_servers_updated()
-
-                if not is_restarting then
-                    -- -- Register client
-                    -- self:register_client({
-                    --     callback = function(response, reg_err)
-                    --         if reg_err then
-                    --             local err =
-                    --                 Error("SERVER", Error.Types.SERVER.CONNECTION, "Client registration failed", {
-                    --                     error = reg_err,
-                    --                 })
-                    --             State:add_error(err)
-                    --             if opts.on_error then
-                    --                 opts.on_error(tostring(err))
-                    --             end
-                    --             return
-                    --         end
-
-                    --         -- Fetch marketplace catalog after successful registration
-                    --         self:get_marketplace_catalog()
-
-                    --         if opts.on_ready then
-                    --             opts.on_ready(self)
-                    --         end
-                    --     end,
-                    -- })
-                end
-            end
-        end,
-    })
-end
-
-function MCPHub:handle_server_error(msg, opts)
-    -- Create proper error object for server errors
-    if not self.is_shutting_down then -- Prevent error logging during shutdown
-        if opts.on_error then
-            opts.on_error(tostring(err))
-        end
+    self.on_ready(self)
+    self:update_servers()
+    if State.marketplace_state.status == "empty" then
+        self:get_marketplace_catalog()
     end
 end
 
+function MCPHub:_clean_up()
+    if self.server_job then
+        self.server_job = nil
+    end
+    self.is_owner = false
+    self.ready = false
+    State:update_hub_state(constants.HubState.STOPPED)
+    self:fire_hub_update()
+end
+function MCPHub:handle_hub_error(msg)
+    if self.is_shutting_down then
+        return -- Skip error handling during shutdown
+    end
+    -- Create error object
+    local err = Error("SERVER", Error.Types.SERVER.SERVER_START, msg)
+    State:add_error(err)
+    State:update_hub_state(constants.HubState.STOPPED)
+    self.on_error(tostring(err))
+    self:_clean_up()
+end
+
 --- Check if server is running and handle connection
---- @param callback? function Optional callback(is_running: boolean)
+--- @param callback? function Optional callback(is_running: boolean, is_our_server: boolean)
 --- @return boolean If no callback is provided, returns is_running
 function MCPHub:check_server(callback)
     log.debug("Checking Server")
     if self:is_ready() then
-        callback(true)
+        callback(true, true)
         return
     end
 
@@ -233,29 +167,15 @@ function MCPHub:check_server(callback)
     opts.callback = function(response, err)
         if err then
             log.debug("Error while get health in check_server")
-            callback(false)
+            callback(false, false)
         else
             local is_hub_server = response and response.server_id == "mcp-hub" and response.status == "ok"
             log.debug("Got health response in check_server, is_hub_server? " .. tostring(is_hub_server))
-            callback(is_hub_server)
+            callback(true, is_hub_server) -- Running but may not be our server
         end
     end
 
     self:get_health(opts)
-end
-
---- Register client with server
---- @param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
-function MCPHub:register_client(opts)
-    return self:api_request(
-        "POST",
-        "client/register",
-        vim.tbl_extend("force", {
-            body = {
-                clientId = self.client_id,
-            },
-        }, opts or {})
-    )
 end
 
 --- Get server status information
@@ -280,51 +200,24 @@ function MCPHub:start_mcp_server(name, opts)
     if is_native then
         local server = is_native
         server:start()
-        -- Fire state change event with updated stats
-        self:emit_update()
-        State:notify_subscribers({
-            server_state = true,
-        }, "server")
-        self:handle_servers_updated()
     else
-        -- First update state to show connecting
-        if self:is_ready() then
-            for i, server in ipairs(State.server_state.servers) do
-                if server.name == name then
-                    State.server_state.servers[i].status = "connecting"
-                    break
-                end
+        for i, server in ipairs(State.server_state.servers) do
+            if server.name == name then
+                State.server_state.servers[i].status = "connecting"
+                break
             end
-
-            self:emit_update()
-
-            State:notify_subscribers({
-                server_state = true,
-            }, "server")
         end
-
-        -- -- Call start endpoint
-        -- self:api_request("POST", "servers/start", {
-        --     body = {
-        --         server_name = name,
-        --     },
-        --     callback = function(response, err)
-        --         self:refresh()
-        --         if opts.callback then
-        --             opts.callback(response, err)
-        --         end
-        --     end,
-        -- })
     end
+    State:notify_subscribers({
+        server_state = true,
+    }, "server")
 end
 
-function MCPHub:emit_update(data)
+function MCPHub:fire_hub_update(data)
     -- Fire state change event with updated stats
     utils.fire("MCPHubStateChange", data or {
-        status = State.server_state.status,
+        state = State.server_state.state,
         active_servers = #self:get_servers(),
-        total_tools = #self:get_tools(),
-        total_resources = #self:get_resources(),
     })
 end
 
@@ -345,40 +238,17 @@ function MCPHub:stop_mcp_server(name, disable, opts)
     if is_native then
         local server = is_native
         server:stop()
-        self:emit_update()
-        State:notify_subscribers({
-            server_state = true,
-        }, "server")
-        self:handle_servers_updated()
     else
-        -- First update state to show disconnecting
-        if self:is_ready() then
-            for i, server in ipairs(State.server_state.servers) do
-                if server.name == name then
-                    State.server_state.servers[i].status = "disconnecting"
-                    break
-                end
+        for i, server in ipairs(State.server_state.servers) do
+            if server.name == name then
+                State.server_state.servers[i].status = "disconnecting"
+                break
             end
-            State:notify_subscribers({
-                server_state = true,
-            }, "server")
         end
-        -- -- Call stop endpoint
-        -- self:api_request("POST", "servers/stop", {
-        --     query = disable and {
-        --         disable = "true",
-        --     } or nil,
-        --     body = {
-        --         server_name = name,
-        --     },
-        --     callback = function(response, err)
-        --         self:refresh()
-        --         if opts.callback then
-        --             opts.callback(response, err)
-        --         end
-        --     end,
-        -- })
     end
+    State:notify_subscribers({
+        server_state = true,
+    }, "server")
 end
 
 --- Get a prompt from the server
@@ -629,15 +499,22 @@ function MCPHub:api_request(method, path, opts)
         url = url .. "?" .. table.concat(params, "&")
     end
 
+    local raw = {}
+    if opts.timeout then
+        vim.list_extend(raw, { "--connect-timeout", tostring(opts.timeout / 1000) })
+    end
+
     -- Prepare request options
     local request_opts = {
         url = url,
         method = method,
-        timeout = opts.timeout or QUICK_TIMEOUT,
+        --INFO: generating custom headers file path to avoid getting .header file not found when simulataneous requests are sent
+        dump = utils.gen_dump_path(),
         headers = {
             ["Content-Type"] = "application/json",
             ["Accept"] = "application/json",
         },
+        raw = raw,
         on_error = vim.schedule_wrap(function(err)
             log.debug(string.format("Error while making request to %s: %s", path, vim.inspect(err)))
             local error = handlers.ResponseHandlers.process_error(err)
@@ -708,6 +585,7 @@ function MCPHub:api_request(method, path, opts)
 
     if callback then
         -- Async mode
+        --
         curl.request(vim.tbl_extend("force", request_opts, {
             callback = vim.schedule_wrap(function(response)
                 process_response(response)
@@ -720,49 +598,99 @@ function MCPHub:api_request(method, path, opts)
 end
 
 function MCPHub:load_config()
-    -- Validate and read current config
     local result = validation.validate_config_file(self.config)
-    return result
+    if not result.ok then
+        if result.error then
+            State:add_error(result.error)
+        end
+        return nil, result.error.message
+    end
+
+    local config = result.json
+    -- Ensure mcpServers exists
+    config.mcpServers = config.mcpServers or {}
+    config.nativeMCPServers = config.nativeMCPServers or {}
+    return config
 end
 
-function MCPHub:handle_servers_updated()
-    -- Fire state change event with updated stats
-    self:emit_update()
-    -- Emit server update event with prompt
-    State:emit("servers_updated", {
-        hub = self,
-    })
+function MCPHub:refresh_config()
+    local config = self:load_config()
+    if not config then
+        return
+    end
+    -- Update State
+    State:update({
+        servers_config = config.mcpServers,
+        native_servers_config = config.nativeMCPServers,
+    }, "setup")
+    self:fire_hub_update()
+end
+
+function MCPHub:update_servers(servers, callback)
+    callback = callback or function() end
+    local function update_state(_servers)
+        State:update({
+            server_state = {
+                servers = _servers or {},
+            },
+        }, "server")
+        -- Fire state change event with updated stats
+        self:fire_hub_update()
+        -- Emit server update event with prompt
+        State:emit("servers_updated", {
+            hub = self,
+        })
+    end
+    if servers then
+        update_state(servers)
+    else
+        self:get_health({
+            callback = function(response, err)
+                if err then
+                    local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Health check failed", {
+                        error = err,
+                    })
+                    State:add_error(health_err)
+                    callback(false)
+                else
+                    update_state(response.servers or {})
+                    callback(true)
+                end
+            end,
+        })
+    end
 end
 
 function MCPHub:handle_capability_updates(data)
+    local type = data.type
     local server = data.server
+    local map = {
+        [constants.SubscriptionTypes.TOOL_LIST_CHANGED] = { "tools" },
+        [constants.SubscriptionTypes.RESOURCE_LIST_CHANGED] = { "resources", "resourceTemplates" },
+        [constants.SubscriptionTypes.PROMPT_LIST_CHANGED] = { "prompts" },
+    }
+    local fields_to_update = map[type]
+    if not fields_to_update then
+        log.warn("Unknown capability update type: " .. type)
+        return
+    end
     if not server then
         return
     end
     for _, s in ipairs(State.server_state.servers) do
         if s.name == server then
-            if data.type == "TOOL" then
-                s.capabilities.tools = data.tools or {}
-                State:emit("tool_list_changed", { server = data.server, hub = self, tools = data.tools })
-            elseif data.type == "RESOURCE" then
-                s.capabilities.resources = data.resources or {}
-                s.capabilities.resourceTemplates = data.resourceTemplates or {}
-                State:emit("resource_list_changed", {
-                    server = data.server,
-                    hub = self,
-                    resources = data.resources,
-                    resourceTemplates = data.resourceTemplates,
-                })
-            elseif data.type == "PROMPT" then
-                s.capabilities.prompts = data.prompts or {}
-                State:emit("prompt_list_changed", { server = data.server, hub = self, prompts = data.prompts })
+            local emit_data = {
+                server = server,
+                hub = self,
+            }
+            for _, field in ipairs(fields_to_update) do
+                s.capabilities[field] = data[field] or {}
+                emit_data[field] = s.capabilities[field]
             end
+            State.emit(type, emit_data)
             break
         end
     end
-    -- Fire state change event with updated stats
-    self:emit_update()
-
     -- Notify subscribers of state change
     State:notify_subscribers({
         server_state = true,
@@ -776,19 +704,10 @@ end
 function MCPHub:update_server_config(server_name, updates, opts)
     opts = opts or {}
     -- Load and validate current config
-    local result = self:load_config()
-    if not result.ok then
-        if result.error then
-            State:add_error(result.error)
-        end
-        return false, result.error.message
+    local config = self:load_config()
+    if not config then
+        return
     end
-
-    local config = result.json
-    -- Ensure mcpServers exists
-    config.mcpServers = config.mcpServers or {}
-    config.nativeMCPServers = config.nativeMCPServers or {}
-
     local is_native = native.is_native_server(server_name)
     local current_object = is_native and config.nativeMCPServers or config.mcpServers
     if updates then
@@ -829,69 +748,99 @@ end
 
 function MCPHub:stop()
     self.is_shutting_down = true
-
-    -- -- Unregister client
-    -- self:api_request("POST", "client/unregister", {
-    --     body = {
-    --         clientId = self.client_id,
-    --     },
-    -- })
-
-    -- if self.is_owner then
-    --     if self.server_job then
-    --         self.server_job:shutdown()
-    --     end
-    -- end
-
-    State:update({
-        server_state = {
-            status = "disconnected",
-            pid = nil,
-        },
-    }, "server")
-
-    self:emit_update({
-        status = "disconnected",
-        active_servers = 0,
-        total_tools = 0,
-        total_resources = 0,
-    })
-
-    -- Clear state
-    self.ready = false
-    self.is_owner = false
+    -- Stop SSE connection
+    self:stop_sse()
+    self:_clean_up()
     self.is_shutting_down = false
-    self.server_job = nil
 end
 
 function MCPHub:is_ready()
     return self.ready
 end
 
-function MCPHub:refresh(callback)
-    callback = callback or function() end
-    if not self:ensure_ready() then
+--- Connect to SSE events endpoint
+function MCPHub:connect_sse()
+    if self.sse_job then
         return
     end
-    self:get_health({
-        callback = function(response, err)
-            if err then
-                local health_err = Error("SERVER", Error.Types.SERVER.HEALTH_CHECK, "Refresh failed", {
-                    error = err,
-                })
-                State:add_error(health_err)
-                callback(false)
-            else
-                State:update({
-                    server_state = vim.tbl_extend("force", State.server_state, {
-                        servers = response.servers or {},
-                    }),
-                }, "server")
-                self:handle_servers_updated()
-                callback(true)
+    local buffer = ""
+    local base_url = self.server_url or string.format("http://localhost:%d", self.port)
+    base_url = base_url:gsub("/+$", "")
+
+    -- Create SSE connection
+    local sse_job = Job:new({
+        command = "curl",
+        args = {
+            "--no-buffer",
+            "--tcp-nodelay",
+            "--retry",
+            "5",
+            "--retry-delay",
+            "1",
+            "--retry-connrefused",
+            "--keepalive-time",
+            "60",
+            base_url .. "/api/events",
+        },
+        on_stdout = vim.schedule_wrap(function(_, data)
+            if data ~= nil then
+                buffer = buffer .. data .. "\n"
+
+                while true do
+                    local event_end = buffer:find("\n\n")
+                    if not event_end then
+                        break
+                    end
+
+                    local event_str = buffer:sub(1, event_end - 1)
+                    buffer = buffer:sub(event_end + 2)
+
+                    local event = event_str:match("^event: (.-)\n")
+                    local data_line = event_str:match("\ndata: ([^\r\n]+)")
+
+                    if event and data_line then
+                        local success, decoded = pcall(vim.fn.json_decode, data_line)
+                        if success then
+                            log.trace(string.format("SSE event: %s", event))
+                            handlers.SSEHandlers.handle_sse_event(event, decoded, self, opts)
+                        else
+                            log.warn(string.format("Failed to decode SSE data: %s", data_line))
+                        end
+                    else
+                        log.warn(string.format("Malformed SSE event: %s", event_str))
+                    end
+                end
             end
-        end,
+        end),
+        on_stderr = vim.schedule_wrap(function(j, data)
+            log.debug("SSE STDERR: " .. tostring(data))
+        end),
+        on_exit = vim.schedule_wrap(function(j, code)
+            log.debug("SSE JOB exited with " .. tostring(code))
+            -- if code ~= 0 and not self.is_shutting_down then
+            if not self.is_shutting_down then
+                self:handle_hub_error("SSE connection failed with code " .. tostring(code))
+            end
+            self.sse_job = nil
+        end),
     })
+
+    -- Store SSE job for cleanup
+    self.sse_job = sse_job
+    sse_job:start()
+end
+
+--- Stop SSE connection
+function MCPHub:stop_sse()
+    if self.sse_job then
+        self.sse_job:shutdown(0)
+        self.sse_job = nil
+    end
+end
+
+function MCPHub:refresh(callback)
+    callback = callback or function() end
+    self:update_servers(nil, callback)
 end
 
 function MCPHub:hard_refresh(callback)
@@ -908,23 +857,14 @@ function MCPHub:hard_refresh(callback)
                 State:add_error(health_err)
                 callback(false)
             else
-                State:update({
-                    server_state = vim.tbl_extend("force", State.server_state, {
-                        servers = response.servers or {},
-                    }),
-                }, "server")
-                self:handle_servers_updated()
+                self:update_servers(response.servers or {})
                 callback(true)
             end
         end,
     })
 end
 
-function MCPHub:restart(callback)
-    if not self:ensure_ready() then
-        return
-    end
-
+function MCPHub:handle_hub_restarting()
     State:update({
         errors = {
             items = {},
@@ -932,39 +872,27 @@ function MCPHub:restart(callback)
         server_output = {
             entries = {},
         },
-        server_state = {
-            status = "restarting",
-        },
     }, "server")
-    self:emit_update({
-        status = "restarting",
-        active_servers = 0,
-        total_tools = 0,
-        total_resources = 0,
-    })
+    self:fire_hub_update()
+end
+
+function MCPHub:restart(callback)
+    if not self:ensure_ready() then
+        return
+    end
     self:api_request("POST", "restart", {
-        body = {
-            clientId = self.client_id,
-        },
         callback = function(response, err)
             if err then
                 local restart_err = Error("SERVER", Error.Types.SERVER.RESTART, "Restart failed", {
                     error = err,
                 })
                 State:add_error(restart_err)
-                -- show as connected
-                State:update({
-                    server_state = {
-                        status = "connected",
-                    },
-                }, "server")
                 self:refresh() --get latest status
                 if callback then
                     callback(false)
                 end
                 return
             end
-            self:handle_server_ready(nil, true)
             if callback then
                 callback(true)
             end
@@ -1100,24 +1028,6 @@ function MCPHub:get_active_servers_prompt(add_example)
     return prompt_utils.get_active_servers_prompt(self:get_servers(), add_example)
 end
 
-function MCPHub:get_use_mcp_tool_prompt(opts)
-    if not self:ensure_ready() then
-        return ""
-    end
-    return prompt_utils.get_use_mcp_tool_prompt(opts)
-end
-
-function MCPHub:get_access_mcp_resource_prompt(opts)
-    if not self:ensure_ready() then
-        return ""
-    end
-    return prompt_utils.get_access_mcp_resource_prompt(opts)
-end
-
-function MCPHub:get_state()
-    return State
-end
-
 --- Get all MCP system prompts
 ---@param opts? {use_mcp_tool_example?: string, add_example?: boolean, access_mcp_resource_example?: string}
 ---@return {active_servers: string|nil, use_mcp_tool: string|nil, access_mcp_resource: string|nil}
@@ -1137,6 +1047,9 @@ end
 --- @param opts? { search?: string, category?: string, sort?: string, callback?: function, timeout?: number }
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:get_marketplace_catalog(opts)
+    if State.marketplace_state.status == "loading" then
+        return
+    end
     opts = opts or {}
     local query = {}
 
@@ -1168,6 +1081,7 @@ function MCPHub:get_marketplace_catalog(opts)
                     "Failed to fetch marketplace catalog",
                     { error = err }
                 )
+                State:add_error(market_err)
                 State:update({
                     marketplace_state = {
                         status = "error",
@@ -1179,7 +1093,7 @@ function MCPHub:get_marketplace_catalog(opts)
             -- Update marketplace state
             State:update({
                 marketplace_state = {
-                    status = "idle",
+                    status = "loaded",
                     catalog = {
                         items = response.items or {},
                         last_updated = response.timestamp,
