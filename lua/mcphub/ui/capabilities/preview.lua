@@ -47,7 +47,7 @@ function PromptsHandler:render(line_offset)
     if prompts.active_servers then
         table.insert(lines, Text.pad_line(NuiLine():append("Active Servers Prompt", highlights.title)))
         table.insert(lines, Text.empty_line())
-        vim.list_extend(lines, vim.tbl_map(Text.pad_line, Text.multiline(prompts.active_servers, highlights.muted)))
+        vim.list_extend(lines, vim.tbl_map(Text.pad_line, Text.render_markdown(prompts.active_servers)))
         -- vim.list_extend(lines, self:render_section_end())
     end
 
