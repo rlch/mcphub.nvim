@@ -312,21 +312,24 @@ function MainView:handle_server_toggle()
     local type, context = self:get_line_info(line)
     if type == "server" and context and State.hub_instance then
         -- Handle regular MCP server
+        -- Gets updated via sse endpoint after file changed rather than explicitly send curl request
         if context.status == "disabled" then
             State.hub_instance:start_mcp_server(context.name, {
-                callback = function(response, err)
-                    if err then
-                        vim.notify("Failed to enable server: " .. err, vim.log.levels.ERROR)
-                    end
-                end,
+                -- via_curl_request = true,
+                -- callback = function(response, err)
+                --     if err then
+                --         vim.notify("Failed to enable server: " .. err, vim.log.levels.ERROR)
+                --     end
+                -- end,
             })
         else
             State.hub_instance:stop_mcp_server(context.name, true, {
-                callback = function(response, err)
-                    if err then
-                        vim.notify("Failed to disable server: " .. err, vim.log.levels.ERROR)
-                    end
-                end,
+                -- via_curl_request = true,
+                -- callback = function(response, err)
+                --     if err then
+                --         vim.notify("Failed to disable server: " .. err, vim.log.levels.ERROR)
+                --     end
+                -- end,
             })
         end
     elseif

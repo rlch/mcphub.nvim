@@ -191,7 +191,7 @@ end
 
 --- Start a disabled/disconnected MCP server
 ---@param name string Server name to start
----@param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
+---@param opts? { via_curl_request?:boolean,callback?: function } Optional callback(response: table|nil, error?: string)
 ---@return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:start_mcp_server(name, opts)
     opts = opts or {}
@@ -211,24 +211,34 @@ function MCPHub:start_mcp_server(name, opts)
                 break
             end
         end
+
+        --only if we want to send a curl request (otherwise file watch and sse events autoupdates)
+        --This is needed in cases where users need to start the server and need to be sure if it is started or not rather than depending on just file watching
+        --Note: this will update the config in the state in the backend which will not trigger file change event as this is sometimes updated before the file change event is triggered so the backend explicitly sends SubscriptionEvent with type servers_updated. which leads to "no signigicant changes" notification as well as "servers updated" notification as we send this explicitly.
+        if opts.via_curl_request then
+            -- Call start endpoint
+            self:api_request("POST", "servers/start", {
+                body = {
+                    server_name = name,
+                },
+                callback = function(response, err)
+                    self:refresh()
+                    if opts.callback then
+                        opts.callback(response, err)
+                    end
+                end,
+            })
+        end
     end
     State:notify_subscribers({
         server_state = true,
     }, "server")
 end
 
-function MCPHub:fire_hub_update(data)
-    -- Fire state change event with updated stats
-    utils.fire("MCPHubStateChange", data or {
-        state = State.server_state.state,
-        active_servers = #self:get_servers(),
-    })
-end
-
 --- Stop an MCP server
 ---@param name string Server name to stop
 ---@param disable boolean Whether to disable the server
----@param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
+---@param opts? { via_curl_request?: boolean, callback?: function } Optional callback(response: table|nil, error?: string)
 ---@return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:stop_mcp_server(name, disable, opts)
     opts = opts or {}
@@ -249,10 +259,37 @@ function MCPHub:stop_mcp_server(name, disable, opts)
                 break
             end
         end
+
+        --only if we want to send a curl request (otherwise file watch and sse events autoupdates)
+        if opts.via_curl_request then
+            -- Call stop endpoint
+            self:api_request("POST", "servers/stop", {
+                query = disable and {
+                    disable = "true",
+                } or nil,
+                body = {
+                    server_name = name,
+                },
+                callback = function(response, err)
+                    self:refresh()
+                    if opts.callback then
+                        opts.callback(response, err)
+                    end
+                end,
+            })
+        end
     end
     State:notify_subscribers({
         server_state = true,
     }, "server")
+end
+
+function MCPHub:fire_hub_update(data)
+    -- Fire state change event with updated stats
+    utils.fire("MCPHubStateChange", data or {
+        state = State.server_state.state,
+        active_servers = #self:get_servers(),
+    })
 end
 
 --- Get a prompt from the server
@@ -618,16 +655,31 @@ function MCPHub:load_config()
 end
 
 function MCPHub:refresh_config()
+    self:refresh_native_servers()
+    self:fire_hub_update()
+end
+
+-- make sure we update the native servers disabled status when the servers are updated through a sse event
+-- TODO: think of a better approach
+function MCPHub:refresh_native_servers()
     local config = self:load_config()
     if not config then
         return
+    end
+    for _, server in ipairs(State.server_state.native_servers) do
+        local server_config = config.nativeMCPServers[server.name] or {}
+        local is_enabled = server_config.disabled ~= true
+        if not is_enabled then
+            server:stop()
+        else
+            server:start()
+        end
     end
     -- Update State
     State:update({
         servers_config = config.mcpServers,
         native_servers_config = config.nativeMCPServers,
     }, "setup")
-    self:fire_hub_update()
 end
 
 function MCPHub:update_servers(servers, callback)
@@ -645,6 +697,8 @@ function MCPHub:update_servers(servers, callback)
             hub = self,
         })
     end
+    --even we change native server status we need to emit so that ui updates, so update_servers takes care of that
+    self:refresh_native_servers()
     if servers then
         update_state(servers)
     else
@@ -944,7 +998,8 @@ local function filter_server_capabilities(server, config)
     return filtered_server
 end
 
-function MCPHub:get_servers()
+function MCPHub:get_servers(include_disabled)
+    include_disabled = include_disabled == true
     if not self:is_ready() then
         return {}
     end
@@ -952,7 +1007,7 @@ function MCPHub:get_servers()
 
     -- Add regular MCP servers
     for _, server in ipairs(State.server_state.servers or {}) do
-        if server.status == "connected" then
+        if server.status == "connected" or include_disabled then
             local server_config = State.servers_config[server.name] or {}
             local filtered_server = filter_server_capabilities(server, server_config)
             table.insert(filtered_servers, filtered_server)
@@ -961,7 +1016,7 @@ function MCPHub:get_servers()
 
     -- Add native servers
     for _, server in ipairs(State.server_state.native_servers or {}) do
-        if server.status == "connected" then
+        if server.status == "connected" or include_disabled then
             local server_config = State.native_servers_config[server.name] or {}
             local filtered_server = filter_server_capabilities(server, server_config)
             table.insert(filtered_servers, filtered_server)
@@ -1025,15 +1080,24 @@ function MCPHub:get_tools()
     return tools
 end
 
-function MCPHub:get_active_servers_prompt(add_example)
+function MCPHub:convert_server_to_text(server)
+    local is_native = native.is_native_server(server.name)
+    local server_config = is_native and State.native_servers_config[server.name] or State.servers_config[server.name]
+    local filtered_server = filter_server_capabilities(server, server_config)
+    return prompt_utils.server_to_text(filtered_server)
+end
+
+function MCPHub:get_active_servers_prompt(add_example, include_disabled)
+    include_disabled = include_disabled ~= false
+    add_example = add_example ~= false
     if not self:is_ready() then
         return ""
     end
-    return prompt_utils.get_active_servers_prompt(self:get_servers(), add_example)
+    return prompt_utils.get_active_servers_prompt(self:get_servers(include_disabled), add_example)
 end
 
 --- Get all MCP system prompts
----@param opts? {use_mcp_tool_example?: string, add_example?: boolean, access_mcp_resource_example?: string}
+---@param opts? {use_mcp_tool_example?: string, add_example?: boolean, include_disabled?: boolean, access_mcp_resource_example?: string}
 ---@return {active_servers: string|nil, use_mcp_tool: string|nil, access_mcp_resource: string|nil}
 function MCPHub:generate_prompts(opts)
     if not self:ensure_ready() then
@@ -1041,7 +1105,7 @@ function MCPHub:generate_prompts(opts)
     end
     opts = opts or {}
     return {
-        active_servers = self:get_active_servers_prompt(opts.add_example),
+        active_servers = self:get_active_servers_prompt(opts.add_example, opts.include_disabled),
         use_mcp_tool = prompt_utils.get_use_mcp_tool_prompt(opts.use_mcp_tool_example),
         access_mcp_resource = prompt_utils.get_access_mcp_resource_prompt(opts.access_mcp_resource_example),
     }
