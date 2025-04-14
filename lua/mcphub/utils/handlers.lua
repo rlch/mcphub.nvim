@@ -74,15 +74,15 @@ M.SSEHandlers = {
                 hub:refresh_config()
             elseif data.type == constants.SubscriptionTypes.SERVERS_UPDATING then
                 if not is_ui_shown then
-                    vim.notify(
-                        "\nMCP Hub Config Changed:\n" .. format_config_changes(data.changes or {}),
-                        vim.log.levels.INFO
-                    )
+                    vim.notify("MCP Hub Config Changed", vim.log.levels.INFO)
                 end
                 hub:refresh()
             elseif data.type == constants.SubscriptionTypes.SERVERS_UPDATED then
                 if not is_ui_shown then
-                    vim.notify("MCP Hub Servers Updated", vim.log.levels.INFO)
+                    vim.notify(
+                        "MCP Servers Updated:\n\n" .. format_config_changes(data.changes or {}),
+                        vim.log.levels.INFO
+                    )
                 end
                 hub:refresh()
             end

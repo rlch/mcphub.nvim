@@ -181,6 +181,40 @@ Example: Requesting to access an MCP resource
     )
 end
 
+function M.server_to_text(server)
+    local text = ""
+    -- Add server section
+    text = text .. string.format("## %s", server.name)
+    local is_disabled = server.status == "disabled"
+    if is_disabled then
+        text = text .. " (Disabled)"
+    end
+    local desc = M.get_description(server)
+    -- Add description
+    text = text .. (desc == "" and "" or "\n" .. desc)
+    if is_disabled then
+        return text
+    end
+    if
+        server.capabilities
+        and (
+            (server.capabilities.tools and #server.capabilities.tools > 0)
+            or (server.capabilities.resources and #server.capabilities.resources > 0)
+            or (server.capabilities.resourceTemplates and #server.capabilities.resourceTemplates > 0)
+        )
+    then
+        -- Add custom instructions if any
+        text = text .. format_custom_instructions(server.name)
+
+        -- Add capabilities
+        text = text .. format_tools(server.capabilities.tools)
+        text = text .. format_resources(server.capabilities.resources, server.capabilities.resourceTemplates)
+    else
+        text = text .. "\n(No tools or resources available)"
+    end
+    return text
+end
+
 function M.get_active_servers_prompt(servers, add_example)
     add_example = add_example ~= false
     local prompt = get_header()
@@ -191,35 +225,35 @@ function M.get_active_servers_prompt(servers, add_example)
 
     prompt = prompt
         .. "\n\nWhen a server is connected, you can use the server's tools via the `use_mcp_tool` tool, "
-        .. "and access the server's resources via the `access_mcp_resource` tool."
+        .. "and access the server's resources via the `access_mcp_resource` tool. In addition to these you can enable any disabled MCP Servers if needed. \n\n"
 
-    for _, server in ipairs(servers) do
-        if
-            server.capabilities
-            and (
-                (server.capabilities.tools and #server.capabilities.tools > 0)
-                or (server.capabilities.resources and #server.capabilities.resources > 0)
-                or (server.capabilities.resourceTemplates and #server.capabilities.resourceTemplates > 0)
-            )
-        then
-            -- Add server section
-            prompt = prompt .. string.format("\n\n## %s", server.name)
+    local connected_servers = vim.tbl_filter(function(s)
+        return s.status == "connected"
+    end, servers)
+    local disabled_servers = vim.tbl_filter(function(s)
+        return s.status == "disabled"
+    end, servers)
+    for _, server in ipairs(connected_servers) do
+        prompt = prompt .. M.server_to_text(server) .. "\n\n"
+    end
 
-            -- Add custom instructions if any
-            prompt = prompt .. format_custom_instructions(server.name)
+    prompt = prompt .. "\n\n# Disabled MCP Servers"
 
-            -- Add capabilities
-            prompt = prompt .. format_tools(server.capabilities.tools)
-            prompt = prompt .. format_resources(server.capabilities.resources, server.capabilities.resourceTemplates)
-        else
-            prompt = prompt .. "\n\n(No tools or resources available)"
+    prompt = prompt
+        .. "\n\nWhen a server is disabled, it will not be able to provide tools or resources. You can start it by using the `toggle_mcp_server` tool on `mcphub` MCP Server using `use_mcp_tool`\n\n"
+    if #disabled_servers == 0 then
+        prompt = prompt .. "\n\n(No disabled MCP servers)"
+    else
+        for _, server in ipairs(disabled_servers) do
+            prompt = prompt .. M.server_to_text(server) .. "\n\n"
         end
     end
+
     local example = [[
 
-## Examples: 
+# Examples: 
 
-### `use_mcp_tool`
+## `use_mcp_tool`
 
 When you need to call a tool on an MCP Server, use the `use_mcp_tool` tool:
 
@@ -230,7 +264,7 @@ use_mcp_tool
   tool_name: string (name of the tool in the server to call)
   tool_input: object (Arguments for the tool call)
 
-### `access_mcp_resource`
+## `access_mcp_resource`
 
 When you need to access a resource from a MCP Server, use the `access_mcp_resource` tool:
 
@@ -239,6 +273,22 @@ Pseudocode:
 access_mcp_resource
   server_name: string (One of the available server names)
   uri: string (uri for the resource)
+
+
+## Toggling a MCP Server
+
+When you need to start a disabled MCP Server or vice-versa, use the `toggle_mcp_server` tool on `mcphub` MCP Server using `use_mcp_tool`:
+
+CRITICAL: You need to use the `use_mcp_tool` tool to call the `toggle_mcp_server` tool on `mcphub` MCP Server.
+
+Pseudocode:
+
+use_mcp_tool
+  server_name: "mcphub"
+  tool_name: "toggle_mcp_server"
+  tool_input: 
+    server_name: string (One of the available server names to start or stop)
+    action: string (one of `start` or `stop`)
 
 ]]
 
