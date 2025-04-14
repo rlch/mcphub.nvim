@@ -44,12 +44,13 @@ local log = require("mcphub.utils.log")
 
 ---@class NativeServer
 ---@field name string Server name
----@field displayName string Display name
+---@field displayName? string Display name
+---@field description? string Server description
 ---@field status string Server status (connected|disconnected|disabled)
 ---@field error? string|nil Error message if any
 ---@field capabilities MCPCapabilities Server capabilities
----@field uptime number Server uptime
----@field lastStarted number Last started timestamp
+---@field uptime? number Server uptime
+---@field lastStarted? number Last started timestamp
 local NativeServer = {}
 NativeServer.__index = NativeServer
 
@@ -138,6 +139,7 @@ function NativeServer:new(def)
     local instance = {
         name = def.name,
         displayName = def.displayName or def.name,
+        description = def.description or "",
         status = "connected",
         error = nil,
         capabilities = {

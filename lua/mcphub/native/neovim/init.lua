@@ -3,6 +3,7 @@ local mcphub = require("mcphub")
 -- Create base neovim server
 mcphub.add_server("neovim", {
     displayName = "Neovim",
+    description = "Neovim MCP server provides a set of tools and resources that integrate with neovim.",
 })
 
 require("mcphub.native.neovim.terminal") -- Terminal and shell commands
