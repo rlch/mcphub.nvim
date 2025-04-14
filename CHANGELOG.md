@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2025-04-14
+
+### Added
+- Added `toggle_mcp_server` tool to mcphub native server
+  * Moved mcphub related resources from neovim server into mcphub server
+  * Added toggle_mcp_server tool that toggles a MCP server and returns the server schema when enabled
+  * We now do not need to pass the entire prompt of all servers upfront. As long as we have servers in our config LLM can see them. With disabled servers we send the server name and description if any so that LLM can dynamically start and stop servers
+  * Added description to MCP Servers (so that LLM has an overview of the server to pick which server to enable when we send disabled servers as well)
+    - Usual MCP Servers do not have any description
+    - Description will be attached to MCP Servers that are added from Marketplace
+    - You can also add description to native servers
+
+- Enhanced server prompts with disabled servers support
+  * Previously, disabled servers were hidden from system prompts
+  * Now includes both connected and disabled servers in system prompts with clear section separation
+
+### Changed
+- Improved CodeCompanion integration for better LLM interactions
+  * Enabled show_result_in_chat by default to provide better visibility of tool responses
+  * Whenever there are #Headers in the response when using mcp tools, we replace # with > because showing result in chat gives user more control and currently the # are not making it possible
+  * Pseudocode examples seems to produce better results even for xml based tools
+  * Renamed `arguments` parameter to `tool_input` in XML for clearer structure
+
+### Fixed
+- Fixed 'gd' preview rendering to properly highlight markdown syntax
 
 ## [4.7.0] - 2025-04-13
 

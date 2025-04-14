@@ -479,12 +479,12 @@ Add MCP capabilities to CodeCompanion.
 
 ![image](https://github.com/user-attachments/assets/f1fa305a-5d48-4119-b3e6-e13a9176da07)
 
-> Set `show_result_in_chat = true` to view the mcp tool call result in the chat buffer. Note that, If the tool call return markdown with headers, the content after the headers wont be sent
+> Set `show_result_in_chat = true` to view the mcp tool call result in the chat buffer. 
+
 ```lua
 extensions = {
     codecompanion = {
         -- Show the mcp tool result in the chat buffer
-        -- NOTE:if the result is markdown with headers, content after the headers wont be sent by codecompanion
         show_result_in_chat = true,
         make_vars = true, -- make chat #variables from MCP server resources
         make_slash_commands = true, -- make /slash_commands from MCP server prompts
