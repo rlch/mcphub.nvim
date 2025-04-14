@@ -60,8 +60,12 @@ end
 -- Parameter handling
 function ToolHandler:validate_param(name, value)
     local param_schema = self.parsedInputSchema.properties[name]
-    if not param_schema or not param_schema.type then
+    if not param_schema then
         return false, "Invalid parameter schema"
+    end
+    --TODO: handle anyOf where type is nil
+    if not param_schema.type then
+        return true
     end
 
     -- Get type handler
@@ -273,6 +277,7 @@ function ToolHandler:render_param_form(line_offset)
         self:render_section_start((is_function and "(" .. Text.icons.event .. " Dynamic) " or "") .. "Input Params")
     )
     inputSchema = self:get_inputSchema(inputSchema)
+    log.debug(vim.inspect(inputSchema))
     self.parsedInputSchema = inputSchema
     if not inputSchema or not next(inputSchema.properties or {}) then
         -- No parameters case
