@@ -60,7 +60,7 @@ function M.setup(opts)
         },
         extensions = {
             codecompanion = {
-                show_result_in_chat = false,
+                show_result_in_chat = true,
                 make_slash_commands = true,
                 make_vars = true,
             },
