@@ -221,7 +221,7 @@ function M._handle_version_check(j, code, config)
     ImageCache.setup()
 
     require("mcphub.extensions").setup("codecompanion", config.extensions.codecompanion)
-    --TODO: Add Support for Avante
+    require("mcphub.extensions").setup("avante", config.extensions.avante)
 
     -- Start hub
     hub:start({
@@ -254,67 +254,6 @@ end
 
 function M.get_state()
     return State
-end
-
--- Version check handler
-function M._handle_version_check(j, code, config)
-    if code ~= 0 then
-        local err = Error(
-            "SETUP",
-            Error.Types.SETUP.MISSING_DEPENDENCY,
-            "mcp-hub exited with non-zero code. Please verify your installation."
-        )
-        State:add_error(err)
-        State:update({
-            setup_state = "failed",
-        }, "setup")
-        config.on_error(tostring(err))
-        return
-    end
-
-    -- Validate version
-    local version_result = validation.validate_version(j:result()[1])
-    if not version_result.ok then
-        State:add_error(version_result.error)
-        State:update({
-            setup_state = "failed",
-        }, "setup")
-        config.on_error(tostring(version_result.error))
-        return
-    end
-
-    -- Create hub instance
-    local hub = MCPHub:new(config)
-    if not hub then
-        local err = Error("SETUP", Error.Types.SETUP.SERVER_START, "Failed to create MCPHub instance")
-        State:add_error(err)
-        State:update({
-            setup_state = "failed",
-        }, "setup")
-        config.on_error(tostring(err))
-        return
-    end
-
-    -- Store hub instance with direct assignment to preserve metatable
-    State.setup_state = "completed"
-    State.hub_instance = hub
-    State:notify_subscribers({
-        setup_state = true,
-        hub_instance = true,
-    }, "setup")
-
-    -- Initialize image cache
-    ImageCache.setup()
-
-    require("mcphub.extensions").setup("codecompanion", config.extensions.codecompanion)
-    --TODO: Add Support for Avante
-    require("mcphub.extensions").setup("avante", config.extensions.avante)
-
-    -- Start hub
-    hub:start({
-        on_ready = config.on_ready,
-        on_error = config.on_error,
-    })
 end
 
 return M
