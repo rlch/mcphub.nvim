@@ -3,7 +3,7 @@ local prompt_utils = require("mcphub.utils.prompt")
 
 mcphub.add_tool("mcphub", {
     name = "toggle_mcp_server",
-    description = "Start or stop an MCP server",
+    description = "Start or stop an MCP server. You can only start a server from one of the disabled servers.",
     inputSchema = {
         type = "object",
         properties = {

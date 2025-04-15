@@ -229,6 +229,7 @@ require("mcphub").setup({
     native_servers = {}, -- add your native servers here
 
     auto_approve = false, -- Auto approve mcp tool calls
+    auto_toggle_mcp_servers = true, -- Let LLMs start and stop MCP servers automatically
     -- Extensions configuration
     extensions = {
         avante = {
@@ -348,7 +349,7 @@ Open the MCPHub UI to manage servers, test tools and monitor status:
 :MCPHub
 ```
 <details>
-<summary>Use hub instance api in your code</summary>
+<summary>For Chat plugin Devs: Use hub instance api in your code</summary>
 
 ```lua
 local hub = mcphub.get_hub_instance()
@@ -404,11 +405,13 @@ Server prompts will be available as `/mcp:server_name:prompt_name` in chat.
 The `mcp_tool()` function now returns two separate tools (`use_mcp_tool` and `access_mcp_resource`) for better schema generation:
 
 ```lua
-extensions = {
-    avante = {
-        make_slash_commands = true, -- make /slash commands from MCP server prompts
+require("mcphub").setup({
+    extensions = {
+        avante = {
+            make_slash_commands = true, -- make /slash commands from MCP server prompts
+        }
     }
-}
+})
 ```
 
 ```lua
@@ -482,14 +485,17 @@ Add MCP capabilities to CodeCompanion.
 > Set `show_result_in_chat = true` to view the mcp tool call result in the chat buffer. 
 
 ```lua
-extensions = {
-    codecompanion = {
-        -- Show the mcp tool result in the chat buffer
-        show_result_in_chat = true,
-        make_vars = true, -- make chat #variables from MCP server resources
-        make_slash_commands = true, -- make /slash_commands from MCP server prompts
-    },
-}
+
+require("mcphub").setup({
+    extensions = {
+        codecompanion = {
+            -- Show the mcp tool result in the chat buffer
+            show_result_in_chat = true,
+            make_vars = true, -- make chat #variables from MCP server resources
+            make_slash_commands = true, -- make /slash_commands from MCP server prompts
+        },
+    }
+})
 ```
 
 ```lua
@@ -1011,6 +1017,7 @@ sequenceDiagram
 - [x] MCP Resources as variables in chat plugins
 - [x] MCP Prompts as slash commands in chat plugins
 - [ ] Support for #variables, /slash_commands in avante
+- [x] Enable LLM to start and stop MCP Servers dynamically
 - [x] Support SSE transport
 - [ ] Composio Integration
 - [ ] Better Docs and Wiki

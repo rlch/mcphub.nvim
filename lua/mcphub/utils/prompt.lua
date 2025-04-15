@@ -14,8 +14,7 @@ local function get_header()
 MCP SERVERS
 
 The Model Context Protocol (MCP) enables communication between the system and locally running MCP servers that provide additional tools and resources to extend your capabilities.
-
-# Connected MCP Servers]]
+]]
 end
 
 local function format_custom_instructions(server_name)
@@ -215,17 +214,10 @@ function M.server_to_text(server)
     return text
 end
 
-function M.get_active_servers_prompt(servers, add_example)
+function M.get_active_servers_prompt(servers, add_example, enable_toggling_mcp_servers)
     add_example = add_example ~= false
+    enable_toggling_mcp_servers = enable_toggling_mcp_servers ~= false
     local prompt = get_header()
-
-    if not servers or #servers == 0 then
-        return prompt .. "\n\n(No MCP servers connected)"
-    end
-
-    prompt = prompt
-        .. "\n\nWhen a server is connected, you can use the server's tools via the `use_mcp_tool` tool, "
-        .. "and access the server's resources via the `access_mcp_resource` tool. In addition to these you can enable any disabled MCP Servers if needed. \n\n"
 
     local connected_servers = vim.tbl_filter(function(s)
         return s.status == "connected"
@@ -233,23 +225,49 @@ function M.get_active_servers_prompt(servers, add_example)
     local disabled_servers = vim.tbl_filter(function(s)
         return s.status == "disabled"
     end, servers)
-    for _, server in ipairs(connected_servers) do
-        prompt = prompt .. M.server_to_text(server) .. "\n\n"
-    end
 
-    prompt = prompt .. "\n\n# Disabled MCP Servers"
+    prompt = prompt .. "\n# Connected MCP Servers"
 
     prompt = prompt
-        .. "\n\nWhen a server is disabled, it will not be able to provide tools or resources. You can start it by using the `toggle_mcp_server` tool on `mcphub` MCP Server using `use_mcp_tool`\n\n"
-    if #disabled_servers == 0 then
-        prompt = prompt .. "\n\n(No disabled MCP servers)"
+        .. "\n\nWhen a server is connected, you can use the server's tools via the `use_mcp_tool` tool, "
+        .. "and access the server's resources via the `access_mcp_resource` tool.\n\n"
+    if #connected_servers == 0 then
+        prompt = prompt .. "(No connected MCP servers)\n\n"
+    else
+        for _, server in ipairs(connected_servers) do
+            prompt = prompt .. M.server_to_text(server) .. "\n\n"
+        end
+    end
+
+    -- instead of removing the whole disabled section, if we dont want auto toggling we set (NO disabled servers) to avoid llm hallucinating server names
+    prompt = prompt .. "# Disabled MCP Servers\n\n"
+    prompt = prompt
+        .. "When a server is disabled, it will not be able to provide tools or resources. You can start one of the following disabled servers by using the `toggle_mcp_server` tool on `mcphub` MCP Server if it is connected using `use_mcp_tool`\n\n"
+    if not enable_toggling_mcp_servers or #disabled_servers == 0 then
+        prompt = prompt .. "(No disabled MCP servers)\n\n"
     else
         for _, server in ipairs(disabled_servers) do
             prompt = prompt .. M.server_to_text(server) .. "\n\n"
         end
     end
+    local toggle_example = [[## Toggling a MCP Server
+
+When you need to start a disabled MCP Server or vice-versa, use the `toggle_mcp_server` tool on `mcphub` MCP Server using `use_mcp_tool`:
+
+CRITICAL: You need to use the `use_mcp_tool` tool to call the `toggle_mcp_server` tool on `mcphub` MCP Server when `mcphub` server is "Connected" else ask the user to enable `mcphub` server.
+
+Pseudocode:
+
+use_mcp_tool
+  server_name: "mcphub"
+  tool_name: "toggle_mcp_server"
+  tool_input: 
+    server_name: string (One of the available server names to start or stop)
+    action: string (one of `start` or `stop`)
+]]
 
     local example = [[
+
 
 # Examples: 
 
@@ -274,23 +292,11 @@ access_mcp_resource
   server_name: string (One of the available server names)
   uri: string (uri for the resource)
 
-
-## Toggling a MCP Server
-
-When you need to start a disabled MCP Server or vice-versa, use the `toggle_mcp_server` tool on `mcphub` MCP Server using `use_mcp_tool`:
-
-CRITICAL: You need to use the `use_mcp_tool` tool to call the `toggle_mcp_server` tool on `mcphub` MCP Server.
-
-Pseudocode:
-
-use_mcp_tool
-  server_name: "mcphub"
-  tool_name: "toggle_mcp_server"
-  tool_input: 
-    server_name: string (One of the available server names to start or stop)
-    action: string (one of `start` or `stop`)
-
 ]]
+
+    if enable_toggling_mcp_servers then
+        example = example .. toggle_example
+    end
 
     return prompt .. (add_example and example or "")
 end

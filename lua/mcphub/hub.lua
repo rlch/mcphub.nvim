@@ -20,6 +20,7 @@ local RESOURCE_TIMEOUT = 30000 -- 30s for resource access
 --- @field port number The port number for the MCP Hub server
 --- @field server_url string In case of hosting mcp-hub somewhere, the url with `https://mydomain.com:5858`
 --- @field config string Path to the MCP servers configuration file
+--- @field auto_toggle_mcp_servers boolean whether to enable LLM to start and stop MCP Servers
 --- @field shutdown_delay number Delay in seconds before shutting down the server
 --- @field cmd string The cmd to invoke the MCP Hub server
 --- @field cmdArgs table The args to pass to the cmd to spawn the server
@@ -45,6 +46,7 @@ function MCPHub:new(opts)
     self.shutdown_delay = opts.shutdown_delay
     self.cmd = opts.cmd
     self.cmdArgs = opts.cmdArgs
+    self.auto_toggle_mcp_servers = opts.auto_toggle_mcp_servers
     self.ready = false
     self.server_job = nil
     self.is_owner = false -- Whether we started the server
@@ -1088,12 +1090,12 @@ function MCPHub:convert_server_to_text(server)
 end
 
 function MCPHub:get_active_servers_prompt(add_example, include_disabled)
-    include_disabled = include_disabled ~= false
+    include_disabled = include_disabled ~= nil and include_disabled or self.auto_toggle_mcp_servers
     add_example = add_example ~= false
     if not self:is_ready() then
         return ""
     end
-    return prompt_utils.get_active_servers_prompt(self:get_servers(include_disabled), add_example)
+    return prompt_utils.get_active_servers_prompt(self:get_servers(include_disabled), add_example, include_disabled)
 end
 
 --- Get all MCP system prompts
