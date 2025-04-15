@@ -233,7 +233,6 @@ function M.collect_arguments(arguments, callback)
         local default = arg.default or ""
 
         local function submit_input(input)
-            vim.notify("submit" .. input)
             if arg.required and (input == nil or input == "") then
                 vim.notify("Value for " .. arg.name .. " is required", vim.log.levels.ERROR)
                 should_proceed = false
