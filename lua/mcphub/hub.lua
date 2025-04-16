@@ -206,6 +206,9 @@ function MCPHub:start_mcp_server(name, opts)
     if is_native then
         local server = is_native
         server:start()
+        State:emit("servers_updated", {
+            hub = self,
+        })
     else
         for i, server in ipairs(State.server_state.servers) do
             if server.name == name then
@@ -254,6 +257,9 @@ function MCPHub:stop_mcp_server(name, disable, opts)
     if is_native then
         local server = is_native
         server:stop()
+        State:emit("servers_updated", {
+            hub = self,
+        })
     else
         for i, server in ipairs(State.server_state.servers) do
             if server.name == name then
