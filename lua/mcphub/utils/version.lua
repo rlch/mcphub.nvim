@@ -3,7 +3,7 @@ return {
     REQUIRED_NODE_VERSION = { -- Required mcp-hub version
         major = 3,
         minor = 0,
-        patch = 4,
-        string = "3.0.4",
+        patch = 5,
+        string = "3.0.5",
     },
 }
