@@ -1018,11 +1018,14 @@ sequenceDiagram
 - [x] Enhanced help view with comprehensive documentation
 - [x] MCP Resources as variables in chat plugins
 - [x] MCP Prompts as slash commands in chat plugins
-- [ ] Support for #variables, /slash_commands in avante
 - [x] Enable LLM to start and stop MCP Servers dynamically
 - [x] Support SSE transport
-- [ ] Composio Integration
+- [x] Support /slash_commands in avante
+- [ ] Support #variables in avante
+- [ ] Support streamable-http with oauth
 - [ ] Better Docs and Wiki
+- [ ] ~Composio Integration~
+- [ ] ~Smithery Integration~
 
 
 ## 👏 Acknowledgements
