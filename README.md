@@ -1023,8 +1023,9 @@ sequenceDiagram
 - [x] Enable LLM to start and stop MCP Servers dynamically
 - [x] Support SSE transport
 - [x] Support /slash_commands in avante
+- [x] Support streamable-http transport
+- [x] Support OAuth
 - [ ] Support #variables in avante
-- [ ] Support streamable-http with oauth
 - [ ] Better Docs and Wiki
 - [ ] ~Composio Integration~
 - [ ] ~Smithery Integration~
