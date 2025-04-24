@@ -337,11 +337,13 @@ Configuration file (`~/.config/mcphub/servers.json`) is watched for changes and 
     - `env`: Optional environment variables. Special values:
       - `""` (empty string): Falls back to process.env.[VAR_NAME]
       - `null`: Falls back to process.env.[VAR_NAME]
+      - `${ENV_VAR}`: Replaces with the resolved value of ENV_VAR in the env field, falling back to process.env
       - Any other value is used as-is
 
 * Remote Servers: (Supports `streamable-http`, `sse` with `OAuth`)
     - `url`: url for remote MCP Server (required) (Auto determines streamable-http or sse transport, auto OAuth authorization)
-    - `headers`: Optional headers for the server
+    - `headers`: Optional headers for the server (`${}` placeholder values are replaced with process.env)
+      - `${ENV_VAR}`: Replaces with process.env.ENV_VAR
 
 * There are other plugin specific options for each server like `disabled`, `disabled_tools`, `custom_instructions` etc which can be easily updated from the UI.
 
