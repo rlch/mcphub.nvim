@@ -310,13 +310,14 @@ MCPHub uses a JSON configuration file to define MCP servers. The default locatio
       "env": {
         "API_KEY": "",                 // Falls back to process.env.API_KEY
         "SERVER_URL": null,            // Falls back to process.env.SERVER_URL
+        "AUTH_HEADER": "BEARER ${API_KEY}", // ${API_KEY} is replaced with resolved value of API_KEY in the env field falling back to process.env
         "DEBUG": "true"               // Direct value, no fallback
       }
     },
     "remote-server": {
       "url": "https://api.example.com/mcp", // Auto determine streamable-http or sse, Auto OAuth authorization
       "headers": {                          // Explicit headers
-        "Authorization": "Bearer your-token"
+        "Authorization": "Bearer ${API_KEY}" // ${API_KEY} is replaced with process.env.API_KEY
       }
     }
   }
