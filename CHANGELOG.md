@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [5.0.0] - 2025-04-29
+
+### Breaking Changes
+
+In view of v15 release of codecompanion, we have made some breaking changes to the mcphub.nvim plugin.
+
+* Now mcphub provides `@mcp` as both an xml tool (when using `has-xml-tools` branch of codecompanion) as well as a function tool (with `main` branch of codecompanion) automatically based on the codecompanion branch.
+
+1. 🚨 You need to remove the old mcp tool entry from codecompanion.config.strategies.chat.tools
+
+```lua
+require("codecompanion").setup({
+ -- other codecompanion config
+  strategies = {
+    chat = {
+       tools = {
+     -- Remove old mcp tool which will be auto added as a tool group with two individual tools.
+      --   ["mcp"] = {
+      --     callback = function()
+      --       return require("mcphub.extensions.codecompanion")
+      --     end,
+      --     description = "Call tools and resources from MCP Servers",
+      --   },
+     },
+    },
+  },
+})
+```
+2. codecompanion extension is now more streamlined in one place using the codecompanoin's extensions api.
+
+```lua
+require("codecompanion").setup({
+--other config
+extensions = {
+  mcphub = {
+    callback = "mcphub.extensions.codecompanion",
+    opts = {
+      make_vars = true,
+      make_slash_commands = true,
+      show_result_in_chat = true,
+    },
+  },
+ },
+})
+
+```
+
+* The `@mcp` tool is split into two separate tools `use_mcp_tool` and `access_mcp_resource`
+* mcphub.config.extensions.codecompanion is deprecated as the options are now declared at codecompanion extension itself.
+
+
 ## [4.11.0] - 2025-04-25
 
 ### Added
