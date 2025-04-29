@@ -1,7 +1,7 @@
 .env
 node_modules
 junk/
-*.avanterules
 bundled/
 wiki/
 .r*
+deps/
