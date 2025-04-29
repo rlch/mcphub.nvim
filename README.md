@@ -81,23 +81,14 @@ O --> D
 
 </details>
 
-## :raised_hands: Support MCPHub
-
-MCPHub is an open source project that relies on your support. If you like this project, please consider supporting to help maintain and improve the project by [Sponsoring](https://github.com/sponsors/ravitemer) or :coffee: [Buying A Coffee](https://www.buymeacoffee.com/ravitemer)
-
 ### :purple_heart: Sponsors
 
-Thank you to the following amazing people:
+Thank you to the following people:
 
-<p align="center">
 
-<a href="https://github.com/yingmanwumen"><img src="https://github.com/yingmanwumen.png" width="60px" alt="yingmanwumen" /></a>
-<a href="https://github.com/yetone"><img src="https://github.com/yetone.png" width="60px" alt="Yetone" /></a>
-<a href="https://github.com/omarcresp"><img src="https://github.com/omarcresp.png" width="60px" alt="omarcresp" /></a>
-<a href="https://github.com/petermoser"><img src="https://github.com/petermoser.png" width="60px" alt="petermoser" /></a>
-<a href="https://github.com/watsy0007"><img src="https://github.com/watsy0007.png" width="60px" alt="watsy0007" /></a>
+<!-- coffee --><!-- coffee -->
+<!-- sponsors --> <p align="center"> <a href="https://github.com/yingmanwumen"><img src="https://github.com/yingmanwumen.png" width="60px" alt="yingmanwumen" /></a> <a href="https://github.com/yetone"><img src="https://github.com/yetone.png" width="60px" alt="Yetone" /></a> <a href="https://github.com/omarcresp"><img src="https://github.com/omarcresp.png" width="60px" alt="omarcresp" /></a> <a href="https://github.com/petermoser"><img src="https://github.com/petermoser.png" width="60px" alt="petermoser" /></a> <a href="https://github.com/watsy0007"><img src="https://github.com/watsy0007.png" width="60px" alt="watsy0007" /></a> </p><!-- sponsors -->
 
-</p>
 
 ## ✨ Features & Support Status
 
