@@ -111,6 +111,12 @@ function M.create_tools(opts)
     return tools
 end
 
+local function silent_assert(condition, message)
+    if not condition then
+        vim.notify(message, vim.log.levels.WARN)
+    end
+end
+
 function M.setup(opts)
     opts = vim.tbl_deep_extend("force", {
         make_vars = true,
@@ -121,6 +127,24 @@ function M.setup(opts)
     if not ok then
         return
     end
+    -- Detect old mcp tool
+    silent_assert(
+        cc_config.strategies.chat.tools.mcp == nil,
+        "MCP Hub: `mcp` tool in codecompanion.config.strategies.chat.tools is deprecated. Please remove it and see the CHANGELOG tab in the Help view (<H>) of MCPHub UI"
+    )
+    -- Make sure we are not overriding user's tools and groups
+    silent_assert(
+        cc_config.strategies.chat.tools.groups.mcp == nil,
+        "MCP Hub: `@mcp` tool group already exists. Please remove it from your codecompanion.config.strategies.chat.tools.groups"
+    )
+    silent_assert(
+        cc_config.strategies.chat.tools.access_mcp_resource == nil,
+        "MCP Hub: `access_mcp_resource` tool already exists. Please remove it from your codecompanion.config.strategies.chat.tools"
+    )
+    silent_assert(
+        cc_config.strategies.chat.tools.use_mcp_tool == nil,
+        "MCP Hub: `use_mcp_tool` tool already exists. Please remove it from your codecompanion.config.strategies.chat.tools"
+    )
     cc_config.strategies.chat.tools =
         vim.tbl_deep_extend("force", cc_config.strategies.chat.tools, M.create_tools(opts))
     utils.setup_codecompanion_variables(opts)
