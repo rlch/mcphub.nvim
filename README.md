@@ -335,11 +335,15 @@ Configuration file (`~/.config/mcphub/servers.json`) is watched for changes and 
 
 ## Nix
 
-### Nixpkgs install
+<details>
+<summary>Nixpkgs install</summary>
 
 > coming...
 
-### Flake install
+</details>
+
+<details>
+<summary> Flake install</summary>
 
 Just add it to your NixOS flake.nix or home-manager:
 
@@ -359,6 +363,7 @@ inputs.mcphub-nvim.packages."${system}".default
 and add the setup function in [lua code](https://nixos.wiki/wiki/Neovim#Note_on_Lua_plugins)
 
 ### Nixvim example
+
 [Nixvim](https://github.com/nix-community/nixvim) example:
 
 ```nix
@@ -379,6 +384,10 @@ and add the setup function in [lua code](https://nixos.wiki/wiki/Neovim#Note_on_
   mcphub-nvim = inputs.mcphub-nvim.packages."${system}".default;
 }
 ```
+
+</details>
+
+
 ## 🚀 Usage
 
 Open the MCPHub UI to manage servers, test tools and monitor status:
