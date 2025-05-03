@@ -105,7 +105,7 @@ end
 function M.create_output_handlers(action_name, has_function_calling, opts)
     return {
         error = function(self, agent, cmd, stderr)
-            local stderr = has_function_calling and (stderr[1] or "") or cmd[1]
+            local stderr = has_function_calling and (stderr[#stderr] or "") or cmd[#cmd]
             agent = has_function_calling and agent or self
             if type(stderr) == "table" then
                 stderr = vim.inspect(stderr)
@@ -125,7 +125,7 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
             add_tool_output(action_name, self, agent.chat, err_msg, true, has_function_calling, opts)
         end,
         success = function(self, agent, cmd, stdout)
-            local result = has_function_calling and stdout[1] or cmd[1]
+            local result = has_function_calling and stdout[#stdout] or cmd[#cmd]
             agent = has_function_calling and agent or self
             -- Show text content if present
             -- TODO: add messages with role = `tool` when supported
