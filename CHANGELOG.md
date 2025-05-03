@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [5.0.1] - 2025-05-03
+
+### Fixed
+
+- Marketplace refetches if catalog empty
+- Fixed parallel tool calls returning first tool's output
+
 ## [5.0.0] - 2025-04-29
 
 ### Breaking Changes
