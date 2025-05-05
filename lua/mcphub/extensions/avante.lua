@@ -101,7 +101,11 @@ function M.mcp_tool()
                         avante = sidebar,
                     },
                     callback = function(result, err)
-                        on_complete(result.text, err)
+                        if result.error then
+                            on_complete(nil, result.error)
+                        else
+                            on_complete(result.text, err)
+                        end
                     end,
                 })
             else

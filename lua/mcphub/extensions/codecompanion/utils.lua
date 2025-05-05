@@ -34,7 +34,12 @@ function M.create_handler(action_name, has_function_calling, opts)
                     if err or not res then
                         output_handler({ status = "error", data = tostring(err) or "No response from call tool" })
                     elseif res then
-                        output_handler({ status = "success", data = res })
+                        -- throw safely thrown MCP error with isError as well for proper UI display for chat plugins
+                        if res.error then
+                            output_handler({ status = "error", data = res.error })
+                        else
+                            output_handler({ status = "success", data = res })
+                        end
                     end
                 end,
             })

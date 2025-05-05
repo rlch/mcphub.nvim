@@ -27,7 +27,7 @@ function M.parse_params(params, action_name)
         table.insert(errors, "tool_name is required")
     end
     if action_name == "use_mcp_tool" and type(arguments) ~= "table" then
-        table.insert(errors, "parameters must be an object")
+        table.insert(errors, "tool_input must be an object")
     end
 
     if action_name == "access_mcp_resource" and not uri then

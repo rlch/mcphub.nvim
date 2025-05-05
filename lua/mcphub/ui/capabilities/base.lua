@@ -218,8 +218,13 @@ function CapabilityHandler:handle_response(response, err)
         self.state.error = err
         self.state.result = response
     else
-        self.state.result = response
-        self.state.error = nil
+        if response.error then
+            self.state.error = response.error
+            self.state.result = response
+        else
+            self.state.result = response
+            self.state.error = nil
+        end
     end
 end
 

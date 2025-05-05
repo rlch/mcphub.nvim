@@ -351,11 +351,11 @@ end
 
 function M.parse_tool_response(response)
     if response == nil then
-        return { text = "", images = {}, blobs = {}, audios = {} }
+        return { error = nil, text = "", images = {}, blobs = {}, audios = {} }
     end
 
     local result = response.result or {}
-    local output = { text = "", images = {}, blobs = {}, audios = {} }
+    local output = { text = "", images = {}, blobs = {}, audios = {}, error = nil }
     local images = {}
     local blobs = {}
     local texts = {}
@@ -399,6 +399,7 @@ function M.parse_tool_response(response)
     -- Combine all text with newlines
     output.text = table.concat(texts, "\n")
     if result.isError then
+        output.error = output.text
         output.text = "The tool run failed with error.\n" .. output.text
     end
     output.images = images
