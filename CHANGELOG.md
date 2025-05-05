@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2025-05-06
+
+### Changed
+- Improved UX for tool execution results in CodeCompanion chat
+  * Better formatted success messages showing tool name
+  * Modified tool output display for clearer feedback
+  * Silent error throwing for better UX in chat plugins
+
+### Fixed
+- Enhanced error handling and propagation for MCP tool execution
+  * Consistent error handling across Avante and CodeCompanion
+- Fixed bugs in first-time config creation
+  * Ensure config directory exists before file creation
+  * Fixed default configuration JSON encoding (empty dict instead of array)
+- Enhanced server deletion UX by replacing confirm with select menu
+
 
 ## [5.0.1] - 2025-05-03
 
@@ -619,4 +635,5 @@ extensions = {
 - Comprehensive error handling
 - Detailed documentation and examples
 - Integration with lazy.nvim package manager
+
 
