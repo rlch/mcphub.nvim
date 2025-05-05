@@ -82,7 +82,12 @@ local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_f
     local show_result_in_chat = opts.show_result_in_chat == true
     local text = show_result_in_chat and replace_headers(llm_msg) or llm_msg
     if has_function_calling then
-        chat:add_tool_output(tool, text, (show_result_in_chat or is_error) and text or "Tool result shared")
+        chat:add_tool_output(
+            tool,
+            text,
+            (show_result_in_chat or is_error) and text
+                or string.format("**`%s` Tool**: Successfully finished", action_name)
+        )
     else
         if show_result_in_chat or is_error then
             chat:add_buf_message({
