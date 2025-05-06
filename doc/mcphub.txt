@@ -1,4 +1,4 @@
-*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 03
+*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 06
 
 ==============================================================================
 Table of Contents                              *mcphub.nvim-table-of-contents*
@@ -6,6 +6,7 @@ Table of Contents                              *mcphub.nvim-table-of-contents*
 1. MCP Hub                                               |mcphub.nvim-mcp-hub|
   - ✨ Features & Support Status|mcphub.nvim-mcp-hub-✨-features-&-support-status|
   - 📦 Installation                  |mcphub.nvim-mcp-hub-📦-installation|
+  - Nix                                              |mcphub.nvim-mcp-hub-nix|
   - 🚀 Usage                                |mcphub.nvim-mcp-hub-🚀-usage|
   - 🔌 Extensions                      |mcphub.nvim-mcp-hub-🔌-extensions|
   - 🎉Lua Native MCP Servers (detailed guide)|mcphub.nvim-mcp-hub-🎉lua-native-mcp-servers-(detailed-guide)|
@@ -278,12 +279,7 @@ with all available options:
         extensions = {
             avante = {
                 make_slash_commands = true, -- make /slash commands from MCP server prompts
-            },
-            codecompanion = {
-                show_result_in_chat = true, -- Show the mcp tool result in the chat buffer
-                make_vars = true, -- make chat #variables from MCP server resources
-                make_slash_commands = true, -- make /slash commands from MCP server prompts
-            },
+            }
         },
     
     
@@ -347,6 +343,7 @@ EXAMPLE CONFIGURATION
           "env": {
             "API_KEY": "",                 // Falls back to process.env.API_KEY
             "SERVER_URL": null,            // Falls back to process.env.SERVER_URL
+            "OP_KEY": "$: cmd:op read op://example/secret", // use $: at the beginning to indicate that this is a command
             "AUTH_HEADER": "BEARER ${API_KEY}", // ${API_KEY} is replaced with resolved value of API_KEY in the env field falling back to process.env
             "DEBUG": "true"               // Direct value, no fallback
           }
@@ -373,6 +370,7 @@ MCP SERVERS CONFIG
     - `env`: Optional environment variables. Special values:
         - `""` (empty string): Falls back to process.env.[VAR_NAME]
         - `null`: Falls back to process.env.[VAR_NAME]
+        - `$:` values that start with `$:` are executed as shell commands e.g to use op cli `$: cmd:op read op://personal/secret`
         - `${ENV_VAR}`: Replaces with the resolved value of ENV_VAR in the env field, falling back to process.env
         - Any other value is used as-is
 - Remote Servers: (Supports `streamable-http`, `sse` with `OAuth`)
@@ -380,6 +378,60 @@ MCP SERVERS CONFIG
     - `headers`: Optional headers for the server (`${}` placeholder values are replaced with process.env)
         - `${ENV_VAR}`: Replaces with process.env.ENV_VAR
 - There are other plugin specific options for each server like `disabled`, `disabled_tools`, `custom_instructions` etc which can be easily updated from the UI.
+
+
+NIX                                                  *mcphub.nvim-mcp-hub-nix*
+
+Nixpkgs install ~
+
+
+  coming…
+Flake install ~
+
+Just add it to your NixOS flake.nix or home-manager:
+
+>nix
+    inputs = {
+      mcphub-nvim.url = "github:ravitemer/mcphub.nvim";
+      ...
+    }
+<
+
+To integrate mcphub.nvim to your NixOS/Home Manager nvim configs, add the
+following to your neovim.plugins
+<https://nixos.wiki/wiki/Neovim#Installing_Plugins> or your neovim.packages
+<https://nixos.wiki/wiki/Neovim#System-wide_2>
+
+>nix
+    inputs.mcphub-nvim.packages."${system}".default
+<
+
+and add the setup function in lua code
+<https://nixos.wiki/wiki/Neovim#Note_on_Lua_plugins>
+
+
+NIXVIM EXAMPLE ~
+
+Nixvim <https://github.com/nix-community/nixvim> example:
+
+>nix
+    { mcphub-nvim, ... }:
+    {
+      extraPlugins = [mcphub-nvim];
+      extraConfigLua = ''
+        require("mcphub").setup()
+      '';
+    }
+    
+    # where
+    {
+      # For nixpkgs (not available yet)
+      # ...
+    
+      # For flakes
+      mcphub-nvim = inputs.mcphub-nvim.packages."${system}".default;
+    }
+<
 
 
 🚀 USAGE                                    *mcphub.nvim-mcp-hub-🚀-usage*
@@ -507,57 +559,38 @@ Add MCP capabilities to CodeCompanion.
 
   Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to
   automatically approve tool requests.
+- Type @mcp in the chat (once submitted, it will add available MCP Servers to the system prompts and adds a tool so that the LLM can call tools, resources on MCP Servers etc)
+
 
   Set `make_vars = true` to show resources as #variables in the chat buffer
 
   Set `make_slash_commands = true` to show prompts as /slash_commands in the chat
   buffer
-- Type @mcp in the chat (once submitted, it will add available MCP Servers to the
-    system prompts and adds a tool so that the LLM can call tools, resources on MCP
-    Servers etc)
-- Server prompts become available as `/mcp:prompt_name` slash commands in chat
-    (_Currently very few servers provide prompts, but you can add your own using
-    mcphub.add_prompt_)
-- Prompts with arguments are handled using vim.ui.input (cancelling input for
-    required arguments will abort the slash command)
-- If the last message from the `/mcp:prompt_name` message is of `user` role, it
-    will be added to the chat buffer.
-- Whenever the servers are updated, the variables and slash_commands will also be
-    updated in realtime
-- E.g LSP current file diagnostics
+- Server prompts become available as `/mcp:prompt_name` slash commands in chat (_Currently very few servers provide prompts, but you can add your own using mcphub.add_prompt_)
+- Prompts with arguments are handled using vim.ui.input (cancelling input for required arguments will abort the slash command)
+- If the last message from the `/mcp:prompt_name` message is of `user` role, it will be added to the chat buffer.
 
 
   Set `show_result_in_chat = true` to view the mcp tool call result in the chat
   buffer.
 >lua
-    
-    require("mcphub").setup({
-        extensions = {
-            codecompanion = {
-                -- Show the mcp tool result in the chat buffer
-                show_result_in_chat = true,
-                make_vars = true, -- make chat #variables from MCP server resources
-                make_slash_commands = true, -- make /slash_commands from MCP server prompts
-            },
-        }
-    })
-<
-
->lua
     require("codecompanion").setup({
-        strategies = {
-            chat = {
-                tools = {
-                    ["mcp"] = {
-                        -- calling it in a function would prevent mcphub from being loaded before it's needed
-                        callback = function() return require("mcphub.extensions.codecompanion") end,
-                        description = "Call tools and resources from the MCP Servers",
-                    }
-                }
+        extensions = {
+            mcphub = {
+                callback = "mcphub.extensions.codecompanion",
+                opts = {
+                    show_result_in_chat = true, -- Show the mcp tool result in the chat buffer
+                    make_vars = true, -- make chat #variables from MCP server resources
+                    make_slash_commands = true, -- make /slash_commands from MCP server prompts
+                },
             }
         }
     })
 <
+
+- Whenever the servers are updated, the variables and slash_commands will also be
+    updated in realtime
+- E.g LSP current file diagnostics
 
 
 LUALINE ~
