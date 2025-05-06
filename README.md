@@ -296,6 +296,7 @@ MCPHub uses a JSON configuration file to define MCP servers. The default locatio
       "env": {
         "API_KEY": "",                 // Falls back to process.env.API_KEY
         "SERVER_URL": null,            // Falls back to process.env.SERVER_URL
+        "OP_KEY": "$: cmd:op read op://example/secret", // use $: at the beginning to indicate that this is a command
         "AUTH_HEADER": "BEARER ${API_KEY}", // ${API_KEY} is replaced with resolved value of API_KEY in the env field falling back to process.env
         "DEBUG": "true"               // Direct value, no fallback
       }
@@ -323,6 +324,7 @@ Configuration file (`~/.config/mcphub/servers.json`) is watched for changes and 
     - `env`: Optional environment variables. Special values:
       - `""` (empty string): Falls back to process.env.[VAR_NAME]
       - `null`: Falls back to process.env.[VAR_NAME]
+      - `$:` values that start with `$:` are executed as shell commands e.g to use op cli `$: cmd:op read op://personal/secret`
       - `${ENV_VAR}`: Replaces with the resolved value of ENV_VAR in the env field, falling back to process.env
       - Any other value is used as-is
 
