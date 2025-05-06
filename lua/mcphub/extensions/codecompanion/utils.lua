@@ -123,11 +123,11 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
             local err_msg = string.format(
                 [[**`%s` Tool**: Failed with the following error:
 
-```                
+````               
 <error>
 %s
 </error>
-```
+````
 ]],
                 action_name,
                 stderr
@@ -143,9 +143,9 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
                 local to_llm = string.format(
                     [[**`%s` Tool**: Returned the following:
 
-```
+````
 %s
-```]],
+````]],
                     action_name,
                     result.text
                 )
