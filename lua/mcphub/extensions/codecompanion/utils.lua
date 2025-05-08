@@ -85,7 +85,8 @@ end
 local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_function_calling, opts)
     local config = require("codecompanion.config")
     local show_result_in_chat = opts.show_result_in_chat == true
-    local text = show_result_in_chat and replace_headers(llm_msg) or llm_msg
+    -- local text = show_result_in_chat and replace_headers(llm_msg) or llm_msg
+    local text = llm_msg
     if has_function_calling then
         chat:add_tool_output(
             tool,
