@@ -8,6 +8,7 @@
 ---@field message string Human-readable error message
 ---@field details? table Additional error context
 ---@field timestamp number Unix timestamp of error creation
+---@field TYPES table Error types and codes
 local Error = {}
 Error.__index = Error
 
@@ -73,6 +74,7 @@ function Error.init(type, code, message, details)
 end
 
 --- Convert error to string representation
+---@return string
 function Error:__tostring()
     local str = string.format("[%s.%s] %s", self.type, self.code, self.message)
     if not vim.tbl_isempty(self.details) then

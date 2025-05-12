@@ -1,7 +1,6 @@
 ---@class BaseResponse
 ---@field output_handler function|nil Async callback handler
 ---@field result table Response data
----@field send fun(self: BaseResponse, result?: table): table Send final response
 local BaseResponse = {}
 BaseResponse.__index = BaseResponse
 
@@ -37,7 +36,7 @@ end
 ---@field image fun(self: ToolResponse, data: string, mime: string): ToolResponse Add image content
 ---@field audio fun(self: ToolResponse, data: string, mime: string): ToolResponse Add audio content
 ---@field resource fun(self: ToolResponse, resource: MCPResourceContent): ToolResponse Add resource content
----@field error fun(self: ToolResponse, message: string, details?: table): table Send error response
+---@field error fun(self: ToolResponse|BaseResponse, message: string, details?: table): table Send error response
 ---@field send fun(self: ToolResponse, result?: table): table Send response
 local ToolResponse = setmetatable({}, { __index = BaseResponse })
 ToolResponse.__index = ToolResponse
@@ -113,25 +112,18 @@ function ToolResponse:error(message, details)
 end
 
 ---@class ResourceResponse : BaseResponse
----@field uri string Resource URI
----@field template string|nil Template if from template
----@field result { contents: MCPResourceContent[] }
----@field text fun(self: ResourceResponse, text: string, mime?: string): ResourceResponse Add text content
----@field blob fun(self: ResourceResponse, data: string, mime?: string): ResourceResponse Add binary content
----@field image fun(self: ResourceResponse, data: string, mime: string): ResourceResponse Add image content
----@field audio fun(self: ResourceResponse, data: string, mime: string): ResourceResponse Add audio content
----@field error fun(self: ResourceResponse, message: string, details?: table): table Send error response
----@field send fun(self: ResourceResponse, result?: table): table Send response
 local ResourceResponse = setmetatable({}, { __index = BaseResponse })
 ResourceResponse.__index = ResourceResponse
 
+---@return ResourceResponse
 function ResourceResponse:new(output_handler, uri, template)
+    ---@class BaseResponse
     local instance = BaseResponse:new(output_handler)
     instance.uri = uri
     instance.template = template
     instance.result = { contents = {} }
     setmetatable(instance, self)
-    return instance
+    return instance --[[@as ResourceResponse]]
 end
 
 function ResourceResponse:text(text, mime)
@@ -191,31 +183,18 @@ function ResourceResponse:error(message, details)
 end
 
 ---@class PromptResponse : BaseResponse
----@field name string Prompt name
----@field description string Prompt description
----@field result { messages: { role: string, content: MCPContent }[] }
----@field current_role string Current role for messages
----@field text fun(self: PromptResponse, text: string): PromptResponse Add text message
----@field image fun(self: PromptResponse, data: string, mime: string): PromptResponse Add image message
----@field blob fun(self: PromptResponse, data: string, mime: string): PromptResponse Add blob message
----@field audio fun(self: PromptResponse, data: string, mime: string): PromptResponse Add audio message
----@field resource fun(self: PromptResponse, resource: MCPResourceContent): PromptResponse Add resource message
----@field user fun(self: PromptResponse): PromptResponse Set role to user
----@field llm fun(self: PromptResponse): PromptResponse Set role to assistant
----@field system fun(self: PromptResponse): PromptResponse Set role to system
----@field error fun(self: PromptResponse, message: string, details?: table): table Send error response
----@field send fun(self: PromptResponse, result?: table): table Send response
 local PromptResponse = setmetatable({}, { __index = BaseResponse })
 PromptResponse.__index = PromptResponse
 
 function PromptResponse:new(output_handler, name, description)
-    local self = BaseResponse:new(output_handler)
-    self = setmetatable(self, PromptResponse)
-    self.name = name
-    self.description = description
-    self.result = { messages = {} }
-    self.current_role = "user" -- Default role is user
-    return self
+    ---@class BaseResponse
+    local instance = BaseResponse:new(output_handler)
+    instance.name = name
+    instance.description = description
+    instance.result = { messages = {} }
+    instance.current_role = "user" -- Default role is user
+    setmetatable(instance, self)
+    return instance
 end
 
 -- Role state setters

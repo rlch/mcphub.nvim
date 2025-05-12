@@ -1,7 +1,7 @@
 local M = {}
 
 --- @class LogConfig
---- @field log_level number Default log level
+--- @field level number Default log level
 --- @field to_file boolean Whether to log to file
 --- @field file_path? string Path to log file
 --- @field prefix string Prefix for log messages

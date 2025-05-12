@@ -33,7 +33,7 @@ I want to create a native MCP server for mcphub.nvim plugin. The server should h
             vim.fn.stdpath("config"),
             setup_file_path
         )
-        res:user():text(guide):text(prompt)
+        res:user():text(guide or "Failed to load guide"):text(prompt)
         res:send()
     end,
 })

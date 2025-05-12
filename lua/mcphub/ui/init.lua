@@ -2,18 +2,25 @@
 --- UI Core for MCPHub
 --- Handles window/buffer management and view system
 ---@brief ]]
----@class MCPHubUI
 local State = require("mcphub.state")
-local Text = require("mcphub.utils.text")
-local constants = require("mcphub.utils.constants")
 local hl = require("mcphub.utils.highlights")
 local utils = require("mcphub.utils")
 
+---@class MCPHub.UI
+---@field window number Window handle
+---@field buffer number Buffer handle
+---@field current_view string Current view name
+---@field views table Table of view instances
+---@field is_shown boolean Whether the UI is currently visible
+---@field cursor_states table Store cursor positions by view name
+---@field context table Context from which the UI was opened
+---@field opts MCPHub.UIConfig Configuration options for UI
 local UI = {}
 UI.__index = UI
 
 -- Default window settings
-UI.defaults = {
+---@class MCPHub.UIConfig
+local defaults = {
     window = {
         width = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
         height = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
@@ -21,13 +28,11 @@ UI.defaults = {
         relative = "editor",
         zindex = 50,
     },
+    ---@type table?
     wo = { -- window-scoped options (vim.wo)
         winhl = "Normal:" .. hl.groups.window_normal .. ",FloatBorder:" .. hl.groups.window_border,
     },
 }
-
--- User configured options
-UI.opts = {}
 
 -- Parse size value into actual numbers
 ---@param value any Size value (number, float, or percentage string)
@@ -50,8 +55,8 @@ local function parse_size(value, total)
 end
 
 --- Create a new UI instance
----@param opts? table Configuration options for UI
----@return MCPHubUI
+---@param opts? MCPHub.UIConfig Configuration options for UI
+---@return MCPHub.UI
 function UI:new(opts)
     local instance = {
         window = nil, -- Window handle
@@ -64,9 +69,7 @@ function UI:new(opts)
     }
     setmetatable(instance, self)
 
-    -- Merge user options with defaults
-    UI.opts = vim.tbl_deep_extend("force", UI.defaults, opts or {})
-
+    self.opts = vim.tbl_deep_extend("force", defaults, opts or {})
     -- Setup highlights with auto-update
     hl.setup()
     hl.setup_auto_update()
@@ -183,7 +186,7 @@ end
 function UI:calculate_window_dimensions()
     local min_width = 50
     local min_height = 10
-    local win_opts = UI.opts.window
+    local win_opts = self.opts.window
 
     -- Calculate dimensions
     local width = parse_size(win_opts.width, vim.o.columns)
@@ -212,7 +215,7 @@ function UI:resize_window()
     end
 
     local dims = self:calculate_window_dimensions()
-    local win_opts = UI.opts.window
+    local win_opts = self.opts.window
 
     -- Update window dimensions and position
     vim.api.nvim_win_set_config(self.window, {
@@ -236,7 +239,7 @@ function UI:create_window()
     end
 
     local dims = self:calculate_window_dimensions()
-    local win_opts = UI.opts.window
+    local win_opts = self.opts.window
 
     -- Create floating window
     self.window = vim.api.nvim_open_win(self.buffer, true, {
@@ -250,7 +253,7 @@ function UI:create_window()
         zindex = win_opts.zindex,
     })
 
-    for k, v in pairs(UI.opts.wo or {}) do
+    for k, v in pairs(self.opts.wo or {}) do
         vim.api.nvim_set_option_value(k, v, { scope = "local", win = self.window })
     end
 
@@ -343,7 +346,6 @@ function UI:hard_refresh()
 end
 
 --- Clean up resources
----@private
 function UI:cleanup()
     if not (self.window and vim.api.nvim_win_is_valid(self.window)) then
         return

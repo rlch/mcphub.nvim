@@ -85,6 +85,7 @@ local function format_tools(tools)
     return result
 end
 
+---@diagnostic disable-next-line: unused-function
 local function remove_functions(obj)
     if type(obj) ~= "table" then
         return obj
@@ -472,7 +473,6 @@ end
 --
 --- Get a standardized installation prompt for marketplace servers
 ---@param details table The server details including name, mcpId, githubUrl, etc
----@param config_file string Path to the MCP config file
 ---@return string The formatted installation prompt
 function M.get_marketplace_server_prompt(details)
     -- Get OS info and paths

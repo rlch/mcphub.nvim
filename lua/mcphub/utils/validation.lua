@@ -7,13 +7,16 @@ local version = require("mcphub.utils.version")
 
 local M = {}
 
+---@class MCPServersConfigFile
+---@field mcpServers table<string,MCPServerConfig>
+---@field nativeMCPServers table<string,NativeMCPServerConfig>
+
 ---@class ValidationResult
 ---@field ok boolean
 ---@field error? MCPError
----
 
 --- Validate setup options
----@param opts table
+---@param opts MCPHub.Config
 ---@return ValidationResult
 function M.validate_setup_opts(opts)
     if not opts.port then
@@ -64,6 +67,7 @@ function M.validate_setup_opts(opts)
     }
 end
 
+---@param custom_instructions CustomMCPServerConfig.CustomInstructions
 local function validate_custom_instructions(custom_instructions)
     if type(custom_instructions) ~= "table" then
         return false
@@ -84,7 +88,7 @@ end
 
 --- Validate server configuration
 ---@param name string Server name to validate
----@param config table Server configuration
+---@param config MCPServerConfig Server configuration
 ---@return ValidationResult
 function M.validate_server_config(name, config)
     if type(config) ~= "table" then
@@ -122,7 +126,7 @@ function M.validate_server_config(name, config)
             }
         end
 
-        if config.args and not vim.tbl_islist(config.args) then
+        if config.args and not vim.islist(config.args) then
             return {
                 ok = false,
                 error = Error(
@@ -197,7 +201,7 @@ end
 
 --- Validate MCP config file
 ---@param path string
----@return table {ok : string, json?: string, content?: string}
+---@return {ok : string, error?: MCPError, json?: MCPServersConfigFile, content?: string}
 function M.validate_config_file(path)
     if not path then
         return {
@@ -274,6 +278,7 @@ function M.validate_config_file(path)
         }
     end
 
+    ---@cast json MCPServersConfigFile
     -- Validate native servers section if present
     if json.nativeMCPServers then
         if type(json.nativeMCPServers) ~= "table" then
@@ -488,7 +493,9 @@ local function validate_property(value, prop_type, name, error_type, object_id, 
     return { ok = true }
 end
 
---the inputSchema will be evaluated if it is a function and is obj is validated
+---inputSchema will be evaluated if it is a function and is obj is validated
+---@param inputSchema table
+---@param tool_name string
 function M.validate_inputSchema(inputSchema, tool_name)
     if not inputSchema then
         return { ok = true }
@@ -515,7 +522,7 @@ function M.validate_inputSchema(inputSchema, tool_name)
 end
 
 --- Validate a tool definition
----@param tool table Tool definition to validate
+---@param tool MCPTool Tool definition to validate
 ---@return ValidationResult
 function M.validate_tool(tool)
     -- Validate name
@@ -534,7 +541,7 @@ function M.validate_tool(tool)
 end
 
 --- Validate a resource definition
----@param resource table Resource definition to validate
+---@param resource MCPResource Resource definition to validate
 ---@return ValidationResult
 function M.validate_resource(resource)
     local name_result = validate_property(resource.name, "string", "Resource Name", Error.Types.NATIVE.INVALID_NAME)
@@ -558,7 +565,7 @@ function M.validate_resource(resource)
 end
 
 --- Validate a resource template definition
----@param template table Resource template definition to validate
+---@param template MCPResourceTemplate Resource template definition to validate
 ---@return ValidationResult
 function M.validate_resource_template(template)
     -- Validate URI template
@@ -601,6 +608,8 @@ function M.validate_resource_template(template)
 end
 
 -- Add prompts validation in native server validation
+---@param def NativeServerDef Native server definition to validate
+---@return {ok: boolean, error: MCPError}
 function M.validate_native_server(def)
     local server_name = def.name
     if not def.name then
@@ -674,7 +683,7 @@ function M.validate_native_server(def)
 end
 
 --- Validate a prompt definition
----@param prompt table Prompt definition to validate
+---@param prompt MCPPrompt Prompt definition to validate
 ---@return ValidationResult
 function M.validate_prompt(prompt)
     -- Validate name

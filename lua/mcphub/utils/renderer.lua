@@ -83,7 +83,7 @@ end
 ---@param server_name string Server name
 ---@param type string Item type
 ---@param current_line number Current line number
----@return NuiLine[],number,table[] Lines, new current line, mappings
+---@return NuiLine[],number,table
 function M.render_cap_section(items, title, server_name, type, current_line)
     local lines = {}
     local mappings = {}
@@ -397,7 +397,7 @@ local function format_time(timestamp)
 end
 
 --- Render error lines without header
----@param type? string Optional error type to filter (setup/server/runtime)
+---@param error_type? string Optional error type to filter (setup/server/runtime)
 ---@param detailed? boolean Whether to show full error details
 ---@return NuiLine[] Lines
 function M.render_hub_errors(error_type, detailed)
@@ -405,7 +405,7 @@ function M.render_hub_errors(error_type, detailed)
     local errors = State:get_errors(error_type)
     if #errors > 0 then
         for _, err in ipairs(errors) do
-            vim.list_extend(lines, M.render_error(err))
+            vim.list_extend(lines, M.render_error(err, detailed))
         end
     end
     return lines
@@ -446,7 +446,7 @@ function M.render_server_entries(entries)
     return lines
 end
 
-function M.render_error(err)
+function M.render_error(err, detailed)
     local lines = {}
     -- Get appropriate icon based on error type
     local error_icon = ({

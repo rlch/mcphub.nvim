@@ -1,18 +1,14 @@
+local State = require("mcphub.state")
 local log = require("mcphub.utils.log")
+local ui_utils = require("mcphub.utils.ui")
+local validation = require("mcphub.utils.validation")
 
 local M = {}
 
 --- Clean command arguments by filtering out empty strings and nil values.
 --- This is particularly useful when handling command arguments that may contain optional values.
----
 --- @param args table Array of command arguments
 --- @return table Cleaned array with only valid arguments
---- @example
---- -- Basic usage:
---- clean_args({"--port", "3000", nil, ""}) -- returns {"--port", "3000"}
----
---- -- With nested arrays (flattened):
---- clean_args({{"-f", "--flag"}, nil, {"value"}}) -- returns {"-f", "--flag", "value"}
 function M.clean_args(args)
     return vim.iter(args or {})
         :flatten()
@@ -253,6 +249,8 @@ function M.is_windows()
     return vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
 end
 
+---@param config MCPHub.Config
+---@return { cmd: string, cmdArgs: string[] }
 function M.get_default_cmds(config)
     local cmd, cmdArgs
     local bin_name = nil
@@ -359,49 +357,6 @@ local function is_visual_mode(mode)
     return mode == "v" or mode == "V" or mode == "^V"
 end
 
-function M.parse_config_from_json(text)
-    local ok, parsed = pcall(vim.json.decode, text)
-    if not ok then
-        return nil, "Invalid JSON format"
-    end
-
-    -- Case 1: Full mcpServers object
-    -- {
-    -- "mcpServers": {
-    -- "server_name": {}
-    -- }
-    -- }
-    if parsed.mcpServers then
-        local name, config = next(parsed.mcpServers)
-        if not name then
-            return nil, "No server config found in mcpServers"
-        end
-        return name, config
-    end
-
-    -- Case 2: Server config object
-    -- {
-    -- "command": "npx",
-    -- }
-    if parsed.command or parsed.url then
-        local is_string = parsed.command and type(parsed.command) == "string" or type(parsed.url) == "string"
-        if is_string then
-            return "unnamed", parsed
-        end
-    end
-
-    -- Case 3: Single server name:config pair
-    -- {
-    --   "server_name": {}
-    -- }
-    if vim.tbl_count(parsed) == 1 then
-        local name, config = next(parsed)
-        return name, config
-    end
-
-    return nil, "JSON should have a mcpServers key or name:config pair"
-end
-
 ---Get the context of the current buffer.
 ---@param bufnr? integer
 ---@param args? table
@@ -492,6 +447,95 @@ function M.get_buf_info(bufnr, args)
         end_line = end_line,
         end_col = end_col,
     }
+end
+
+---@class ConfigParseResult
+---@field ok boolean
+---@field error string|nil
+---@field name string|nil
+---@field config table|nil
+
+---@param text string
+---@return ConfigParseResult
+function M.parse_config_from_json(text)
+    local result = {
+        ok = false,
+        error = nil,
+        name = nil,
+        config = nil,
+    }
+
+    local ok, parsed = pcall(vim.json.decode, text)
+    if not ok then
+        result.error = "Invalid JSON format"
+        return result
+    end
+
+    -- Case 1: Full mcpServers object
+    if parsed.mcpServers then
+        local name, config = next(parsed.mcpServers)
+        if not name then
+            result.error = "No server config found in mcpServers"
+            return result
+        end
+        result.ok = true
+        result.name = name
+        result.config = config
+        return result
+    end
+
+    -- Case 2: Server config object
+    if parsed.command or parsed.url then
+        local is_string = parsed.command and type(parsed.command) == "string" or type(parsed.url) == "string"
+        if is_string then
+            result.ok = true
+            result.name = "unnamed"
+            result.config = parsed
+            return result
+        end
+    end
+
+    -- Case 3: Single server name:config pair
+    if vim.tbl_count(parsed) == 1 then
+        local name, config = next(parsed)
+        result.ok = true
+        result.name = name
+        result.config = config
+        return result
+    end
+
+    result.error = "JSON should have a mcpServers key or name:config pair"
+    return result
+end
+
+function M.open_server_editor()
+    ui_utils.multiline_input("Paste server's json config", "", function(content)
+        if not content or vim.trim(content) == "" then
+            return
+        end
+        local result = M.parse_config_from_json(content)
+        if result.ok then
+            State.hub_instance:update_server_config(result.name, result.config)
+            vim.notify("Server " .. result.name .. " added successfully", vim.log.levels.INFO)
+        end
+    end, {
+        filetype = "json",
+        start_insert = true,
+        show_footer = false,
+        validate = function(content)
+            local result = M.parse_config_from_json(content)
+            if not result.ok then
+                vim.notify(result.error, vim.log.levels.ERROR)
+                return false
+            end
+            local valid = validation.validate_server_config(result.name, result.config)
+            if not valid.ok then
+                vim.notify(valid.error.message, vim.log.levels.ERROR)
+                return false
+            end
+            return true
+        end,
+    })
 end
 
 return M

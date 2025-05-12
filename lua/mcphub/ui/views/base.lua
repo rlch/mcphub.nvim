@@ -13,7 +13,7 @@ local VIEW_TYPES = {
 }
 
 ---@class View
----@field ui MCPHubUI Parent UI instance
+---@field ui MCPHub.UI Parent UI instance
 ---@field name string View name
 ---@field keymaps table<string, {action: function, desc: string}> View-specific keymaps
 ---@field active_keymaps string[] Currently active keymap keys
@@ -22,6 +22,7 @@ local VIEW_TYPES = {
 ---@field hover_ns number Namespace for highlighting
 ---@field cursor_highlight number|nil Extmark ID for current highlight
 ---@field cursor_group number|nil Cursor movement tracking group
+---@field cursor_positions table
 local View = {}
 View.__index = View
 
@@ -433,10 +434,12 @@ function View:draw()
         if type(line) == "string" then
             -- Handle string lines with potential newlines
             for _, l in ipairs(Text.multiline(line)) do
+                ---@diagnostic disable-next-line: undefined-field
                 l:render(buf, ns_id, line_idx)
                 line_idx = line_idx + 1
             end
         else
+            ---@diagnostic disable-next-line: undefined-field
             line:render(buf, ns_id, line_idx)
             line_idx = line_idx + 1
         end

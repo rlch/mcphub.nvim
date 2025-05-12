@@ -1,17 +1,10 @@
----@class Native
----@field is_native_server fun(server_name: string): NativeServer|nil Check if a server name belongs to a native server
----@field add_server fun(server_name: string, def?: table): NativeServer|nil Add new native server
----@field add_tool fun(server_name: string, tool_def: MCPTool): NativeServer|nil Add tool to server
----@field add_resource fun(server_name: string, resource_def: MCPResource): NativeServer|nil Add resource to server
----@field add_resource_template fun(server_name: string, template_def: MCPResourceTemplate): NativeServer|nil Add template to server
----@field add_prompt fun(server_name: string, prompt_def: MCPPrompt): NativeServer|nil Add prompt to server
 local Error = require("mcphub.utils.errors")
 local NativeServer = require("mcphub.native.utils.server")
 local State = require("mcphub.state")
 local log = require("mcphub.utils.log")
 local validate = require("mcphub.utils.validation")
 
----@class NativeManager
+---@class MCPHub.Native
 local Native = {}
 
 --- Check if a server name belongs to a native server
@@ -30,9 +23,12 @@ local function handle_error(err)
     State:add_error(err)
 end
 
---- Internal: Register a native server definition
----@private
----@param def table Server definition with name capabilities etc
+---@class NativeServerDef
+---@field name? string Name of the server
+---@field displayName? string Display name of the server
+---@field capabilities? MCPCapabilities
+
+---@param def NativeServerDef Server definition with name capabilities etc
 ---@return NativeServer|nil server Server instance or nil on error
 function Native.register(def)
     if type(def) ~= "table" then
@@ -63,11 +59,9 @@ function Native.register(def)
     return server
 end
 
---API
-
 --- Add a new native server
 ---@param server_name string Name of the server
----@param def? { displayName?: string, capabilities?: MCPCapabilities } Optional server definition overrides
+---@param def? NativeServerDef Optional server definition overrides
 ---@return NativeServer|nil server Server instance or nil on error
 function Native.add_server(server_name, def)
     -- Check if server already exists
@@ -114,6 +108,7 @@ function Native.add_tool(server_name, tool_def)
         return server
     else
         return Native.add_server(server_name, {
+            name = server_name,
             capabilities = { tools = { tool_def } },
         })
     end
@@ -136,6 +131,7 @@ function Native.add_resource(server_name, resource_def)
         return server
     else
         return Native.add_server(server_name, {
+            name = server_name,
             capabilities = { resources = { resource_def } },
         })
     end
@@ -158,6 +154,7 @@ function Native.add_resource_template(server_name, template_def)
         return server
     else
         return Native.add_server(server_name, {
+            name = server_name,
             capabilities = { resourceTemplates = { template_def } },
         })
     end
@@ -179,6 +176,7 @@ function Native.add_prompt(server_name, prompt_def)
         return server
     else
         return Native.add_server(server_name, {
+            name = server_name,
             capabilities = { prompts = { prompt_def } },
         })
     end

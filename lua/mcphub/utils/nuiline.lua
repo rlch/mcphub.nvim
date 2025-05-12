@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-doc-name, return-type-mismatch, undefined-field
 --[[ Adapted from nui.line by Munif Tanjim
 Source: https://github.com/MunifTanjim/nui.nvim/blob/main/lua/nui/line/init.lua
 License: MIT ]]

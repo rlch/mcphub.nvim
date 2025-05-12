@@ -168,7 +168,7 @@ function M.get_selection(bufnr)
         end_col = #lines[#lines]
     end
     if #lines > 0 then
-        if mode == "V" or (not is_in_visual_mode and vim.fn.visualmode() == "V") then
+        if M.is_visual_mode() then
             start_col = 1
             end_col = #lines[#lines]
         else

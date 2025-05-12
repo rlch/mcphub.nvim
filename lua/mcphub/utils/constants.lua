@@ -1,5 +1,6 @@
 local M = {}
 
+---@enum MCPHub.Constants.EventTypes
 M.EventTypes = {
     HEARTBEAT = "heartbeat",
     HUB_STATE = "hub_state",
@@ -7,6 +8,7 @@ M.EventTypes = {
     SUBSCRIPTION_EVENT = "subscription_event",
 }
 
+---@enum MCPHub.Constants.SubscriptionTypes
 M.SubscriptionTypes = {
     TOOL_LIST_CHANGED = "tool_list_changed",
     RESOURCE_LIST_CHANGED = "resource_list_changed",
@@ -17,6 +19,7 @@ M.SubscriptionTypes = {
     SERVERS_UPDATED = "servers_updated",
 }
 
+---@enum MCPHub.Constants.HubState
 M.HubState = {
     STARTING = "starting",
     READY = "ready",

@@ -1,7 +1,7 @@
----@brief [[
+---[[
 --- Marketplace view for MCPHub UI
 --- Browse, search and install MCP servers
----@brief ]]
+---]]
 local Installers = require("mcphub.utils.installers")
 local NuiLine = require("mcphub.utils.nuiline")
 local State = require("mcphub.state")
@@ -11,9 +11,9 @@ local ui_utils = require("mcphub.utils.ui")
 local utils = require("mcphub.utils")
 local validation = require("mcphub.utils.validation")
 
----@class MarketplaceView
----@field super View
+---@class MarketplaceView: View
 ---@field active_mode "browse"|"details" Current view mode
+---@field selected_server MarketplaceItem|nil Currently selected server
 local MarketplaceView = setmetatable({}, {
     __index = View,
 })
@@ -30,7 +30,6 @@ function MarketplaceView:new(ui)
         browse_mode = nil, -- Will store [line, col]
         details_mode = nil, -- Will store [line, col]
     }
-
     --  Setup initial keymaps (mode-specific keymaps set in setup_active_mode)
     self.keymaps = {}
 
@@ -75,7 +74,8 @@ function MarketplaceView:update_visual_selection_hints()
     end
 end
 
--- Extract unique categories and tags from catalog items
+---Extract unique categories and tags from catalog items
+---@return string[]
 function MarketplaceView:get_available_categories()
     local categories = {}
     local seen = {}
@@ -107,7 +107,9 @@ function MarketplaceView:get_available_categories()
     return categories
 end
 
--- Filter and sort catalog items
+--- Filter and sort catalog items
+---@param items MarketplaceItem[] List of items to filter and sort
+---@return MarketplaceItem[] Filtered and sorted items
 function MarketplaceView:filter_and_sort_items(items)
     if not items or #items == 0 then
         return {}
@@ -219,18 +221,19 @@ function MarketplaceView:after_enter()
         vim.api.nvim_win_set_cursor(0, { install_line and install_line.line or 7, 0 })
     end
 
+    local group = vim.api.nvim_create_augroup("MarketplaceView", { clear = true })
     -- Set up autocmd for visual selection in details mode
     if self.active_mode == "details" then
         -- Clear any existing autocmds for this buffer
         vim.api.nvim_clear_autocmds({
             buffer = self.ui.buffer,
-            group = self.ui.augroup,
+            group = group,
         })
 
         -- Create autocmd for visual mode
         vim.api.nvim_create_autocmd({ "CursorMoved", "ModeChanged" }, {
             buffer = self.ui.buffer,
-            group = self.ui.augroup,
+            group = group,
             callback = function()
                 self:update_visual_selection_hints()
             end,
@@ -445,39 +448,14 @@ function MarketplaceView:setup_active_mode()
 end
 
 function MarketplaceView:open_config_editor(placeholder)
-    ui_utils.multiline_input("Paste server's json config", placeholder or "", function(content)
-        if not content or vim.trim(content) == "" then
-            return
-        end
-        --validated in validate field
-        local name, config = utils.parse_config_from_json(content)
-        State.hub_instance:update_server_config(name, config)
-        vim.notify("Server " .. name .. " added successfully", vim.log.levels.INFO)
-    end, {
-        filetype = "json",
-        start_insert = true,
-        show_footer = false,
-        --instead of closing the input, validate and show errors
-        validate = function(content)
-            local name, config = utils.parse_config_from_json(content)
-            if not name then
-                vim.notify(config, vim.log.levels.ERROR)
-                return false
-            end
-            local valid = validation.validate_server_config(name, config)
-            if not valid.ok then
-                vim.notify(valid.error.message, vim.log.levels.ERROR)
-                return false
-            end
-            return true
-        end,
-    })
+    utils.open_server_editor()
 end
 
--- Helper to find server at cursor line
+--- Helper to find server at cursor line
+---@return MarketplaceItem|nil
 function MarketplaceView:get_server_at_line(line)
     local type, context = self:get_line_info(line)
-    if type == "server" and context.mcpId then
+    if type == "server" and (context and context.mcpId) then
         -- Look up server in catalog by id
         for _, server in ipairs(State.marketplace_state.catalog.items) do
             if server.mcpId == context.mcpId then

@@ -16,7 +16,7 @@ local QUICK_TIMEOUT = 1000 -- 1s for quick operations like health checks
 local TOOL_TIMEOUT = 30000 -- 30s for tool calls
 local RESOURCE_TIMEOUT = 30000 -- 30s for resource access
 
---- @class MCPHub
+--- @class MCPHub.Hub
 --- @field port number The port number for the MCP Hub server
 --- @field server_url string In case of hosting mcp-hub somewhere, the url with `https://mydomain.com:5858`
 --- @field config string Path to the MCP servers configuration file
@@ -35,26 +35,23 @@ MCPHub.__index = MCPHub
 
 --- Create a new MCPHub instance
 --- @param opts table Configuration options
---- @return MCPHub Instance of MCPHub
+--- @return MCPHub.Hub
 function MCPHub:new(opts)
-    local self = setmetatable({}, MCPHub)
-
-    -- Set up instance fields
-    self.port = opts.port
-    self.server_url = opts.server_url
-    self.config = opts.config
-    self.shutdown_delay = opts.shutdown_delay
-    self.cmd = opts.cmd
-    self.cmdArgs = opts.cmdArgs
-    self.auto_toggle_mcp_servers = opts.auto_toggle_mcp_servers
-    self.ready = false
-    self.server_job = nil
-    self.is_owner = false -- Whether we started the server
-    self.is_shutting_down = false
-    self.on_ready = opts.on_ready or function() end
-    self.on_error = opts.on_error or function() end
-
-    return self
+    return setmetatable({
+        port = opts.port,
+        server_url = opts.server_url,
+        config = opts.config,
+        auto_toggle_mcp_servers = opts.auto_toggle_mcp_servers,
+        shutdown_delay = opts.shutdown_delay,
+        cmd = opts.cmd,
+        cmdArgs = opts.cmdArgs,
+        ready = false,
+        server_job = nil,
+        is_owner = false,
+        is_shutting_down = false,
+        on_ready = opts.on_ready or function() end,
+        on_error = opts.on_error or function() end,
+    }, MCPHub)
 end
 
 --- Start the MCP Hub server
@@ -78,6 +75,7 @@ function MCPHub:start()
 
         -- Try to start new server
         self.is_owner = true
+        ---@diagnostic disable-next-line: missing-fields
         self.server_job = Job:new({
             command = self.cmd,
             args = utils.clean_args({
@@ -100,7 +98,7 @@ function MCPHub:start()
             on_start = vim.schedule_wrap(function()
                 self:connect_sse()
             end),
-            on_stdout = vim.schedule_wrap(function(_, data)
+            on_stdout = vim.schedule_wrap(function(_, _)
                 -- if data then
                 --     log.debug("Server stdout:" .. data)
                 -- end
@@ -140,6 +138,9 @@ function MCPHub:_clean_up()
     State:update_hub_state(constants.HubState.STOPPED)
     self:fire_hub_update()
 end
+
+---@param msg string
+---@param code number|nil
 function MCPHub:handle_hub_stopped(msg, code)
     code = code ~= nil and code or 1
     -- if self.is_shutting_down then
@@ -155,15 +156,12 @@ function MCPHub:handle_hub_stopped(msg, code)
 end
 
 --- Check if server is running and handle connection
---- @param callback? function Optional callback(is_running: boolean, is_our_server: boolean)
---- @return boolean If no callback is provided, returns is_running
+--- @param callback fun(is_running:boolean, is_our_server:boolean)
 function MCPHub:check_server(callback)
     log.debug("Checking Server")
     if self:is_ready() then
-        callback(true, true)
-        return
+        return callback(true, true)
     end
-
     -- Quick health check
     local opts = {
         timeout = QUICK_TIMEOUT,
@@ -180,17 +178,18 @@ function MCPHub:check_server(callback)
             callback(true, is_hub_server) -- Running but may not be our server
         end
     end
-
-    self:get_health(opts)
+    return self:get_health(opts)
 end
 
 --- Get server status information
---- @param opts? { callback?: function } Optional callback(response: table|nil, error?: string)
+--- @param opts? { callback?: fun(response: table?, error: string?) } Optional callback(response: table|nil, error?: string)
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:get_health(opts)
     return self:api_request("GET", "health", opts)
 end
 
+---@param name string
+---@return NativeServer | MCPServer | nil
 function MCPHub:get_server(name)
     local is_native = native.is_native_server(name)
     if is_native then
@@ -204,6 +203,8 @@ function MCPHub:get_server(name)
     return nil
 end
 
+---@param name any
+---@param _ any
 function MCPHub:authorize_mcp_server(name, _)
     -- local authUrl = self:get_server(name)["authorizationUrl"]
     self:api_request("POST", "servers/authorize", {
@@ -223,8 +224,8 @@ end
 
 --- Start a disabled/disconnected MCP server
 ---@param name string Server name to start
----@param opts? { via_curl_request?:boolean,callback?: function } Optional callback(response: table|nil, error?: string)
----@return table|nil, string|nil If no callback is provided, returns response and error
+---@param opts? { via_curl_request?:boolean,callback?: function }
+---@return table?, string? If no callback is provided, returns response and error
 function MCPHub:start_mcp_server(name, opts)
     opts = opts or {}
     if not self:update_server_config(name, {
@@ -322,6 +323,7 @@ function MCPHub:stop_mcp_server(name, disable, opts)
     }, "server")
 end
 
+---@param data? table
 function MCPHub:fire_hub_update(data)
     -- Fire state change event with updated stats
     utils.fire("MCPHubStateChange", data or {
@@ -334,7 +336,7 @@ end
 --- @param server_name string
 --- @param prompt_name string
 --- @param args table
---- @param opts? { callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @param opts? { parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:get_prompt(server_name, prompt_name, args, opts)
     opts = opts or {}
@@ -350,7 +352,9 @@ function MCPHub:get_prompt(server_name, prompt_name, args, opts)
             if opts.parse_response == true then
                 response = prompt_utils.parse_prompt_response(response)
             end
-            original_callback(response, err)
+            if original_callback then
+                original_callback(response, err)
+            end
         end
     end
 
@@ -413,7 +417,7 @@ end
 --- @param server_name string
 --- @param tool_name string
 --- @param args table
---- @param opts? { callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @param opts? {parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:call_tool(server_name, tool_name, args, opts)
     opts = opts or {}
@@ -429,7 +433,9 @@ function MCPHub:call_tool(server_name, tool_name, args, opts)
             if opts.parse_response == true then
                 response = prompt_utils.parse_tool_response(response)
             end
-            original_callback(response, err)
+            if original_callback then
+                original_callback(response, err)
+            end
         end
     end
 
@@ -490,7 +496,7 @@ end
 --- Access a server resource
 --- @param server_name string
 --- @param uri string
---- @param opts? { callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @param opts? { parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:access_resource(server_name, uri, opts)
     opts = opts or {}
@@ -506,7 +512,9 @@ function MCPHub:access_resource(server_name, uri, opts)
             if opts.parse_response == true then
                 response = prompt_utils.parse_resource_response(response)
             end
-            original_callback(response, err)
+            if original_callback then
+                original_callback(response, err)
+            end
         end
     end
 
@@ -558,7 +566,7 @@ end
 --- API request helper
 --- @param method string HTTP method
 --- @param path string API path
---- @param opts? { body?: table, timeout?: number, skip_ready_check?: boolean, callback?: function, query?: table }
+--- @param opts? { body?: table, timeout?: number, skip_ready_check?: boolean, callback?: fun(response: table?, error: string?), query?: table }
 --- @return table|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:api_request(method, path, opts)
     opts = opts or {}
@@ -598,7 +606,9 @@ function MCPHub:api_request(method, path, opts)
             log.debug(string.format("Error while making request to %s: %s", path, vim.inspect(err)))
             local error = handlers.ResponseHandlers.process_error(err)
             if not self:is_ready() and path == "health" then
-                callback(nil, tostring(error))
+                if callback then
+                    callback(nil, tostring(error))
+                end
             else
                 State:add_error(error)
             end
@@ -664,7 +674,6 @@ function MCPHub:api_request(method, path, opts)
 
     if callback then
         -- Async mode
-        --
         curl.request(vim.tbl_extend("force", request_opts, {
             callback = vim.schedule_wrap(function(response)
                 process_response(response)
@@ -676,6 +685,7 @@ function MCPHub:api_request(method, path, opts)
     end
 end
 
+---@return MCPServersConfigFile?, string?
 function MCPHub:load_config()
     local result = validation.validate_config_file(self.config)
     if not result.ok then
@@ -685,7 +695,7 @@ function MCPHub:load_config()
         return nil, result.error.message
     end
 
-    local config = result.json
+    local config = result.json or {}
     -- Ensure mcpServers exists
     config.mcpServers = config.mcpServers or {}
     config.nativeMCPServers = config.nativeMCPServers or {}
@@ -698,7 +708,6 @@ function MCPHub:refresh_config()
 end
 
 -- make sure we update the native servers disabled status when the servers are updated through a sse event
--- TODO: think of a better approach
 function MCPHub:refresh_native_servers()
     local config = self:load_config()
     if not config then
@@ -802,7 +811,7 @@ function MCPHub:update_server_config(server_name, updates, opts)
     -- Load and validate current config
     local config = self:load_config()
     if not config then
-        return
+        return false
     end
     local is_native = native.is_native_server(server_name)
     local current_object = is_native and config.nativeMCPServers or config.mcpServers
@@ -819,7 +828,7 @@ function MCPHub:update_server_config(server_name, updates, opts)
     end
 
     -- Write updated config back to file
-    local json_str = utils.pretty_json(vim.json.encode(config))
+    local json_str = utils.pretty_json(vim.json.encode(config) or "")
     local file = io.open(self.config, "w")
     if not file then
         return false, "Failed to open config file for writing"
@@ -828,11 +837,6 @@ function MCPHub:update_server_config(server_name, updates, opts)
     file:write(json_str)
     file:close()
 
-    -- Update State
-    -- State:update({
-    --     servers_config = config.mcpServers,
-    --     native_servers_config = config.nativeMCPServers,
-    -- }, "setup")
     -- update state manually to avoid deep extending
     State.servers_config = config.mcpServers
     State.native_servers_config = config.nativeMCPServers
@@ -875,6 +879,7 @@ function MCPHub:connect_sse()
     base_url = base_url:gsub("/+$", "")
 
     -- Create SSE connection
+    ---@diagnostic disable-next-line: missing-fields
     local sse_job = Job:new({
         command = "curl",
         args = {
@@ -909,7 +914,7 @@ function MCPHub:connect_sse()
                         local success, decoded = pcall(vim.fn.json_decode, data_line)
                         if success then
                             log.trace(string.format("SSE event: %s", event))
-                            handlers.SSEHandlers.handle_sse_event(event, decoded, self, opts)
+                            handlers.SSEHandlers.handle_sse_event(event, decoded, self)
                         else
                             log.warn(string.format("Failed to decode SSE data: %s", data_line))
                         end
@@ -919,10 +924,10 @@ function MCPHub:connect_sse()
                 end
             end
         end),
-        on_stderr = vim.schedule_wrap(function(j, data)
+        on_stderr = vim.schedule_wrap(function(_, data)
             log.debug("SSE STDERR: " .. tostring(data))
         end),
-        on_exit = vim.schedule_wrap(function(j, code)
+        on_exit = vim.schedule_wrap(function(_, code)
             log.debug("SSE JOB exited with " .. tostring(code))
             self:handle_hub_stopped("SSE connection failed with code " .. tostring(code), code)
             self.sse_job = nil
@@ -999,7 +1004,7 @@ function MCPHub:restart(callback)
         return
     end
     self:api_request("POST", "hard-restart", {
-        callback = function(response, err)
+        callback = function(_, err)
             if err then
                 local restart_err = Error("SERVER", Error.Types.SERVER.RESTART, "Hard restart failed", {
                     error = err,

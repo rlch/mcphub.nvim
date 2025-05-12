@@ -1,30 +1,33 @@
+---[[
+--- Global state management for MCPHub
+--- Handles setup, server, and UI state
+---]]
 local constants = require("mcphub.utils.constants")
 local log = require("mcphub.utils.log")
 
----@brief [[
---- Global state management for MCPHub
---- Handles setup, server, and UI state
----@brief ]]
----@class MCPState
+---@class MCPHub.State
 local State = {
-    -- Setup state
+    ---@type "not_started" | "in_progress" | "completed" | "failed" MCPHub setup state
     setup_state = "not_started",
-    -- config
-    config = {},
-    --config.mcpServers
+    config = {}, --[[@as MCPHub.Config]]
+    ---@type table<string, MCPServerConfig>
     servers_config = {},
-    --config.nativeMCPServers
+    ---@type table<string, NativeMCPServerConfig>
     native_servers_config = {},
 
-    -- Core instances
+    ---@type MCPHub.Hub?
     hub_instance = nil,
+    ---@type MCPHub.UI?
     ui_instance = nil,
 
     -- Marketplace state
     marketplace_state = {
-        status = "empty", -- empty/loaded/loading/error
+        ---@type "empty" | "loading" | "loaded" | "error"
+        status = "empty",
         catalog = {
+            ---@type MarketplaceItem[]
             items = {},
+            ---@type number
             last_updated = nil,
         },
         filters = {
@@ -32,26 +35,35 @@ local State = {
             category = "",
             sort = "stars", -- newest/stars/name
         },
+        ---@type MarketplaceItem
         selected_server = nil,
+        ---@type table<string, {data: table,timestamp: number}>
         server_details = {}, -- Map of mcpId -> details
     },
 
     -- Server state
     server_state = {
-        state = constants.HubState.STARTING, -- disconnected/connecting/connected
+        ---@type MCPHub.Constants.HubState
+        state = constants.HubState.STARTING,
+        ---@type number?
         pid = nil, -- Server process ID when running
+        ---@type number?
         started_at = nil, -- When server was started
+        ---@type MCPServer[]
         servers = {}, -- Regular MCP servers
+        ---@type NativeServer[]
         native_servers = {}, -- Native MCP servers
     },
 
     -- Error management
     errors = {
+        ---@type MCPError[]
         items = {}, -- Array of error objects with type property
     },
 
     -- Server output
     server_output = {
+        ---@type LogEntry[]
         entries = {}, -- Chronological server output entries
     },
 
@@ -65,10 +77,11 @@ local State = {
     },
 
     -- subscribers
-    event_subscribers = {
-        --on_servers_updated
-    },
+    ---@type table<string, function[]>
+    event_subscribers = {},
 }
+
+---@return boolean
 function State:is_connected()
     return self.server_state.state == constants.HubState.READY
         or self.server_state.state == constants.HubState.RESTARTED
@@ -105,6 +118,8 @@ function State:reset()
     State.last_update = 0
 end
 
+---@param partial_state table
+---@param update_type? string
 function State:update(partial_state, update_type)
     update_type = update_type or "all"
     local changes = {}
@@ -214,6 +229,8 @@ function State:is_server_installed(mcpId)
     return false
 end
 
+---@param event string
+---@param data any
 function State:emit(event, data)
     local event_subscribers = self.event_subscribers[event]
     if event_subscribers then
@@ -223,11 +240,15 @@ function State:emit(event, data)
     end
 end
 
+---@param event string
+---@param callback function
 function State:add_event_listener(event, callback)
     self.event_subscribers[event] = self.event_subscribers[event] or {}
     table.insert(self.event_subscribers[event], callback)
 end
 
+---@param event string
+---@param callback function
 function State:remove_event_listener(event, callback)
     if self.event_subscribers[event] then
         for i, cb in ipairs(self.event_subscribers[event]) do
@@ -239,11 +260,12 @@ function State:remove_event_listener(event, callback)
     end
 end
 
+---@param event string
 function State:remove_all_event_listeners(event)
     self.event_subscribers[event] = {}
 end
 
--- For server output (stdout/stderr)
+---@param entry LogEntry
 function State:add_server_output(entry)
     if not entry or not entry.type or not entry.message then
         return
@@ -269,6 +291,8 @@ function State:add_server_output(entry)
     }, "logs")
 end
 
+---@param status string
+---@param ... any
 function State:update_hub_state(status, ...)
     self:update({
         server_state = {
@@ -278,6 +302,8 @@ function State:update_hub_state(status, ...)
     }, "server")
 end
 
+---@param callback function
+---@param types string[]
 function State:subscribe(callback, types)
     types = types or { "all" }
     for _, type in ipairs(types) do
@@ -286,6 +312,8 @@ function State:subscribe(callback, types)
     end
 end
 
+---@param changes table
+---@param update_type string
 function State:notify_subscribers(changes, update_type)
     -- Notify type-specific subscribers
     if update_type ~= "all" and self.subscribers[update_type] then

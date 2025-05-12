@@ -1,3 +1,4 @@
+---@diagnostic disable: deprecated
 local start = vim.health.start or vim.health.report_start --[[@as function]]
 local ok = vim.health.ok or vim.health.report_ok --[[@as function]]
 local info = vim.health.info or vim.health.report_info --[[@as function]]

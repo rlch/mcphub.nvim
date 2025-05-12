@@ -5,6 +5,7 @@ local Text = require("mcphub.utils.text")
 local ui_utils = require("mcphub.utils.ui")
 
 ---@class CapabilityHandler
+---@field name string
 ---@field server_name string Name of the server this capability belongs to
 ---@field info table Raw capability info from the server
 ---@field def table Definition of the capability
@@ -35,7 +36,7 @@ function CapabilityHandler:new(server_name, capability_info, view)
 end
 
 --- Get preferred cursor position when entering capability mode
----@return number|nil Line number to position cursor at
+---@return number[]|nil Line number to position cursor at
 function CapabilityHandler:get_cursor_position()
     -- Default to first interactive line if any
     if #self.interactive_lines > 0 then

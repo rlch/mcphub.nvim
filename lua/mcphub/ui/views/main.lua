@@ -14,7 +14,7 @@ local ui_utils = require("mcphub.utils.ui")
 local utils = require("mcphub.utils")
 local validation = require("mcphub.utils.validation")
 
----@class MainView
+---@class MainView: View
 ---@field super View
 ---@field expanded_server string|nil Currently expanded server name
 ---@field active_capability CapabilityHandler|nil Currently active capability
@@ -27,7 +27,6 @@ MainView.__index = MainView
 function MainView:new(ui)
     local self = View:new(ui, "main") -- Create base view with name
     self = setmetatable(self, MainView)
-
     -- Initialize state
     self.expanded_server = nil
     self.active_capability = nil
@@ -63,7 +62,7 @@ function MainView:handle_collapse()
     local type, context = self:get_line_info(line)
 
     -- If we're on a server line, handle directly
-    if type == "server" then
+    if type == "server" and context then
         if context.status == "connected" and self.expanded_server == context.name then
             local server_line = line
             self.expanded_server = nil -- collapse
@@ -130,33 +129,7 @@ function MainView:handle_custom_instructions(context)
 end
 
 function MainView:add_server()
-    ui_utils.multiline_input("Paste server's json config", "", function(content)
-        if not content or vim.trim(content) == "" then
-            return
-        end
-        --validated in validate field
-        local name, config = utils.parse_config_from_json(content)
-        State.hub_instance:update_server_config(name, config)
-        vim.notify("Server " .. name .. " added successfully", vim.log.levels.INFO)
-    end, {
-        filetype = "json",
-        start_insert = true,
-        show_footer = false,
-        --instead of closing the input, validate and show errors
-        validate = function(content)
-            local name, config = utils.parse_config_from_json(content)
-            if not name then
-                vim.notify(config, vim.log.levels.ERROR)
-                return false
-            end
-            local valid = validation.validate_server_config(name, config)
-            if not valid.ok then
-                vim.notify(valid.error.message, vim.log.levels.ERROR)
-                return false
-            end
-            return true
-        end,
-    })
+    utils.open_server_editor()
 end
 
 function MainView:handle_edit()
@@ -811,7 +784,7 @@ function MainView:render()
         local breadcrumb_line = NuiLine():append(state_info.icon, state_info.hl):append(state_info.desc, state_info.hl)
         table.insert(lines, Text.pad_line(breadcrumb_line))
         table.insert(lines, self:divider())
-        vim.list_extend(lines, renderer.render_server_entries(State.server_output.entries, false))
+        vim.list_extend(lines, renderer.render_server_entries(State.server_output.entries))
         local errors = renderer.render_hub_errors(nil, false)
         if #errors > 0 then
             vim.list_extend(lines, errors)

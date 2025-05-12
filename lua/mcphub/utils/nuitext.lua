@@ -1,3 +1,4 @@
+---@diagnostic disable: param-type-mismatch
 --[[ Adapted from nui.text by Munif Tanjim
 Source: https://github.com/MunifTanjim/nui.nvim/blob/main/lua/nui/text/init.lua
 License: MIT ]]

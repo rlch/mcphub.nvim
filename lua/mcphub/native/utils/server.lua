@@ -28,6 +28,7 @@ local log = require("mcphub.utils.log")
 ---@field name? string Prompt identifier
 ---@field description? string|fun():string Prompt description or function returning description
 ---@field arguments? MCPPromptArgument[]|fun():MCPPromptArgument[] List of arguments
+---@field handler fun(req: PromptRequest, res: PromptResponse): nil | table
 
 ---@class MCPResourceTemplate
 ---@field name? string Template identifier
@@ -399,7 +400,7 @@ function NativeServer:access_resource(uri, opts)
     local ok, result = pcall(resource.handler, req, res)
     if not ok then
         log.warn(string.format("Resource access failed: %s", result))
-        return res:error(result)
+        return res:error(result --[[@as string]])
     end
 
     -- Handle synchronous return if any

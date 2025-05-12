@@ -126,7 +126,7 @@ M.SSEHandlers = {
 M.TypeHandlers = {
     string = {
         validate = function(value)
-            return true
+            return type(value) == "string"
         end,
         convert = function(value)
             return tostring(value)
@@ -152,7 +152,7 @@ M.TypeHandlers = {
             return num and math.floor(num) == num
         end,
         convert = function(value)
-            return math.floor(tonumber(value))
+            return math.floor(tonumber(value) and tonumber(value) or 0)
         end,
         format = function()
             return "integer"
@@ -268,7 +268,7 @@ M.TypeHandlers = {
 M.ResponseHandlers = {
     --- Process API errors and create structured error objects
     --- @param error table|string Error from API
-    --- @param context table Additional context to include
+    --- @param context? table Additional context to include
     --- @return MCPError Structured error object
     process_error = function(error, context)
         if type(error) == "table" then
