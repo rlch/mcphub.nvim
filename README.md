@@ -1062,7 +1062,7 @@ sequenceDiagram
 - [ ] Add types
 - [ ] Add tests
 - [ ] Support #variables in avante
-- [ ] Better Docs and Wiki
+- [ ] Better Docs 
 - [ ] ~Composio Integration~
 - [ ] ~Smithery Integration~
 
@@ -1074,17 +1074,3 @@ Thanks to:
 - [cline/mcp-marketplace](https://github.com/cline/mcp-marketplace) for providing the marketplace api
 - [nui.nvim](https://github.com/MunifTanjim/nui.nvim) for inspiring our text highlighting utilities
 
-## 📚 Documentation
-
-For detailed documentation, visit our [Wiki](https://github.com/ravitemer/mcphub.nvim/wiki):
-
-- [Installation Guide](https://github.com/ravitemer/mcphub.nvim/wiki/Installation)
-- [Configuration Guide](https://github.com/ravitemer/mcphub.nvim/wiki/Configuration-File)
-- [Extension Setup](https://github.com/ravitemer/mcphub.nvim/wiki/Extensions)
-- [Avante Integration](https://github.com/ravitemer/mcphub.nvim/wiki/Avante)
-- [CodeCompanion Integration](https://github.com/ravitemer/mcphub.nvim/wiki/CodeCompanion)
-- [Lualine Integration](https://github.com/ravitemer/mcphub.nvim/wiki/Lualine)
-- [Native MCP Servers](https://github.com/ravitemer/mcphub.nvim/wiki/Native-Servers)
-- [Example Implementations](https://github.com/ravitemer/mcphub.nvim/wiki/Example-Servers)
-- [API Reference](https://github.com/ravitemer/mcphub.nvim/wiki/API-Reference)
-- [Troubleshooting Guide](https://github.com/ravitemer/mcphub.nvim/wiki/Troubleshooting)
