@@ -508,8 +508,8 @@ function M.parse_config_from_json(text)
     return result
 end
 
-function M.open_server_editor()
-    ui_utils.multiline_input("Paste server's json config", "", function(content)
+function M.open_server_editor(placeholder)
+    ui_utils.multiline_input("Paste server's json config", placeholder or "", function(content)
         if not content or vim.trim(content) == "" then
             return
         end

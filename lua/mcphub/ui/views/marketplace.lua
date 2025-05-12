@@ -448,7 +448,7 @@ function MarketplaceView:setup_active_mode()
 end
 
 function MarketplaceView:open_config_editor(placeholder)
-    utils.open_server_editor()
+    utils.open_server_editor(placeholder)
 end
 
 --- Helper to find server at cursor line
