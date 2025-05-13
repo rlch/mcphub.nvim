@@ -3,7 +3,6 @@
 --- Provides text formatting, layout, and rendering utilities
 ---@brief ]]
 local NuiLine = require("mcphub.utils.nuiline")
-local NuiText = require("mcphub.utils.nuitext")
 local hl = require("mcphub.utils.highlights")
 
 local M = {}
@@ -135,7 +134,7 @@ function M.align_text(text, width, align, highlight)
     local inner_width = width - (M.HORIZONTAL_PADDING * 2)
 
     -- Convert string to NuiLine if needed
-    local line = type(text) == "string" and NuiLine():append(text, highlight) or text
+    local line = type(text) == "string" and NuiLine():append(text, highlight) or text --[[@as NuiLine]]
     local line_width = line:width()
 
     -- Calculate padding
@@ -267,9 +266,7 @@ function M.render_markdown(text)
     end
 
     local lines = {}
-    local current_list_level = 0
     local in_code_block = false
-    local code_block_lang = nil
 
     for _, line in ipairs(vim.split(text, "\n", { plain = true })) do
         local nui_line = NuiLine()
@@ -277,7 +274,6 @@ function M.render_markdown(text)
         -- Handle code blocks
         if line:match("^```") then
             in_code_block = not in_code_block
-            code_block_lang = in_code_block and line:match("^```(.+)") or nil
             nui_line:append(line, M.highlights.muted)
 
         -- Inside code block
@@ -287,14 +283,17 @@ function M.render_markdown(text)
         -- Headers
         elseif line:match("^#+ ") then
             local level = #line:match("^(#+)")
-            local text = line:match("^#+%s+(.+)")
-            nui_line:append(string.rep("#", level) .. " ", M.highlights.muted):append(text, M.highlights.title)
+            local header_text = line:match("^#+%s+(.+)")
+            nui_line:append(string.rep("#", level) .. " ", M.highlights.muted):append(header_text, M.highlights.title)
 
         -- Lists
         elseif line:match("^%s*[-*] ") then
             local indent = #(line:match("^%s*") or "")
-            local text = line:match("^%s*[-*]%s+(.+)")
-            nui_line:append(string.rep(" ", indent)):append("• ", M.highlights.muted):append(text, M.highlights.text)
+            local list_text = line:match("^%s*[-*]%s+(.+)")
+            nui_line
+                :append(string.rep(" ", indent))
+                :append("• ", M.highlights.muted)
+                :append(list_text, M.highlights.text)
 
         -- Normal text
         else
@@ -308,7 +307,7 @@ function M.render_markdown(text)
 end
 
 --- Render JSON with syntax highlighting using the existing pretty_json formatter
----@param text string|table The JSON text or table to render
+---@param text string|table? The JSON text or table to render
 ---@return NuiLine[]
 function M.render_json(text)
     local utils = require("mcphub.utils")
@@ -319,7 +318,7 @@ function M.render_json(text)
     end
 
     -- Use the existing pretty printer
-    local formatted = utils.pretty_json(text)
+    local formatted = utils.pretty_json(text or "")
     local lines = {}
 
     -- Process each line and add highlighting

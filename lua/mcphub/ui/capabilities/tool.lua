@@ -8,7 +8,6 @@ local log = require("mcphub.utils.log")
 local validation = require("mcphub.utils.validation")
 
 ---@class ToolHandler : CapabilityHandler
----@field super CapabilityHandler
 local ToolHandler = setmetatable({}, {
     __index = Base,
 })
@@ -17,15 +16,15 @@ ToolHandler.type = "tool"
 ToolHandler.parsedInputSchema = {}
 
 function ToolHandler:new(server_name, capability_info, view)
-    local self = Base:new(server_name, capability_info, view)
-    setmetatable(self, ToolHandler)
-    self.state = vim.tbl_extend("force", self.state, {
+    local instance = Base:new(server_name, capability_info, view)
+    setmetatable(instance, ToolHandler)
+    instance.state = vim.tbl_extend("force", instance.state, {
         params = {
             values = {},
             errors = {},
         },
     })
-    return self
+    return instance
 end
 
 -- Parameter ordering
@@ -244,8 +243,8 @@ function ToolHandler:execute()
                 hubui = State.ui_instance,
             },
             parse_response = true,
-            callback = function(response, err)
-                self:handle_response(response, err)
+            callback = function(response, error)
+                self:handle_response(response, error)
                 self.view:draw()
             end,
         })

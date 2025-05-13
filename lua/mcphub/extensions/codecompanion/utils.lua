@@ -1,6 +1,10 @@
 local M = {}
 local shared = require("mcphub.extensions.shared")
 
+---@param action_name MCPHubToolType
+---@param has_function_calling boolean
+---@param opts MCPHubCodeCompanionConfig
+---@return function
 function M.create_handler(action_name, has_function_calling, opts)
     return function(agent, args, _, output_handler)
         local params = shared.parse_params(args, action_name)
@@ -22,6 +26,12 @@ function M.create_handler(action_name, has_function_calling, opts)
             end
         end
         local hub = require("mcphub").get_hub_instance()
+        if not hub then
+            return {
+                status = "error",
+                data = "MCP Hub is not ready yet",
+            }
+        end
         if params.action == "use_mcp_tool" then
             --use async call_tool method
             hub:call_tool(params.server_name, params.tool_name, params.arguments, {
@@ -55,7 +65,7 @@ function M.create_handler(action_name, has_function_calling, opts)
                     if err or not res then
                         output_handler({
                             status = "error",
-                            data = tostring(err) or "No response from access resource",
+                            data = err and tostring(err) or "No response from access resource",
                         })
                     elseif res then
                         output_handler({ status = "success", data = res })
@@ -71,17 +81,13 @@ function M.create_handler(action_name, has_function_calling, opts)
     end
 end
 
-local function replace_headers(text)
-    local lines = vim.split(text, "\n")
-    for i, line in ipairs(lines) do
-        -- if line starts with #, ##, ###, #### etc replace them with >,>> ,>>> etc
-        lines[i] = line:gsub("^(#+)", function(hash)
-            local level = #hash
-            return string.rep(">", level)
-        end)
-    end
-    return table.concat(lines, "\n")
-end
+---@param action_name MCPHubToolType
+---@param tool table
+---@param chat any
+---@param llm_msg string
+---@param is_error boolean
+---@param has_function_calling boolean
+---@param opts MCPHubCodeCompanionConfig
 local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_function_calling, opts)
     local config = require("codecompanion.config")
     local show_result_in_chat = opts.show_result_in_chat == true
@@ -113,10 +119,14 @@ local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_f
     end
 end
 
+---@param action_name MCPHubToolType
+---@param has_function_calling boolean
+---@param opts MCPHubCodeCompanionConfig
+---@return {error: function, success: function}
 function M.create_output_handlers(action_name, has_function_calling, opts)
     return {
         error = function(self, agent, cmd, stderr)
-            local stderr = has_function_calling and (stderr[#stderr] or "") or cmd[#cmd]
+            stderr = has_function_calling and (stderr[#stderr] or "") or cmd[#cmd]
             agent = has_function_calling and agent or self
             if type(stderr) == "table" then
                 stderr = vim.inspect(stderr)
@@ -136,10 +146,10 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
             add_tool_output(action_name, self, agent.chat, err_msg, true, has_function_calling, opts)
         end,
         success = function(self, agent, cmd, stdout)
+            ---@type MCPResponseOutput
             local result = has_function_calling and stdout[#stdout] or cmd[#cmd]
             agent = has_function_calling and agent or self
             -- Show text content if present
-            -- TODO: add messages with role = `tool` when supported
             if result.text and result.text ~= "" then
                 local to_llm = string.format(
                     [[**`%s` Tool**: Returned the following:
@@ -157,6 +167,7 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
     }
 end
 
+---@param opts MCPHubCodeCompanionConfig
 function M.setup_codecompanion_variables(opts)
     if not opts.make_vars then
         return
@@ -187,15 +198,6 @@ function M.setup_codecompanion_variables(opts)
             local uri = resource.uri
             local resource_name = resource.name or uri
             local description = resource.description or ""
-            if type(description) == "function" then
-                local ok, desc = pcall(description, resource)
-                if ok then
-                    description = desc or ""
-                else
-                    description = "Error in description function: " .. (desc or "")
-                end
-            end
-            --remove new lines
             description = description:gsub("\n", " ")
 
             description = resource_name .. " (" .. description .. ")"
@@ -221,6 +223,7 @@ function M.setup_codecompanion_variables(opts)
     end)
 end
 
+---@param opts MCPHubCodeCompanionConfig
 function M.setup_codecompanion_slash_commands(opts)
     if not opts.make_slash_commands then
         return
@@ -247,15 +250,10 @@ function M.setup_codecompanion_slash_commands(opts)
             local server_name = prompt.server_name
             local prompt_name = prompt.name or ""
             local description = prompt.description or ""
+            description = description:gsub("\n", " ")
+            description = prompt_name .. " (" .. description .. ")"
+
             local arguments = prompt.arguments or {}
-            if type(description) == "function" then
-                local ok, desc = pcall(description, prompt)
-                if ok then
-                    description = desc or ""
-                else
-                    description = "Error in description function: " .. (desc or "")
-                end
-            end
             if type(arguments) == "function" then
                 local ok, args = pcall(arguments, prompt)
                 if ok then
@@ -265,10 +263,7 @@ function M.setup_codecompanion_slash_commands(opts)
                     arguments = {}
                 end
             end
-            --remove new lines
-            description = description:gsub("\n", " ")
 
-            description = prompt_name .. " (" .. description .. ")"
             slash_commands["mcp:" .. prompt_name] = {
                 id = "mcp" .. server_name .. prompt_name,
                 description = description,

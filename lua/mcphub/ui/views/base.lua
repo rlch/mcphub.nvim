@@ -1,7 +1,7 @@
----@brief [[
+---[[
 --- Base view for MCPHub UI
 --- Provides common view functionality and base for view inheritance
----@brief ]]
+---]]
 local NuiLine = require("mcphub.utils.nuiline")
 local State = require("mcphub.state")
 local Text = require("mcphub.utils.text")
@@ -22,7 +22,6 @@ local VIEW_TYPES = {
 ---@field hover_ns number Namespace for highlighting
 ---@field cursor_highlight number|nil Extmark ID for current highlight
 ---@field cursor_group number|nil Cursor movement tracking group
----@field cursor_positions table
 local View = {}
 View.__index = View
 
@@ -199,6 +198,8 @@ function View:clear_line_tracking()
     self.interactive_lines = {}
 end
 
+---@param line_nr number
+---@return string?, table?
 function View:get_line_info(line_nr)
     for _, tracked in ipairs(self.interactive_lines) do
         if tracked.line == line_nr then

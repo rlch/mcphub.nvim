@@ -21,6 +21,7 @@ local function get_file_info(path)
     }
 end
 
+---@type MCPTool[]
 local search_tools = {
     {
         name = "find_files",

@@ -25,17 +25,17 @@ local MainView = setmetatable({}, {
 MainView.__index = MainView
 
 function MainView:new(ui)
-    local self = View:new(ui, "main") -- Create base view with name
-    self = setmetatable(self, MainView)
+    local instance = View:new(ui, "main") -- Create base view with name
+    instance = setmetatable(instance, MainView)
     -- Initialize state
-    self.expanded_server = nil
-    self.active_capability = nil
-    self.cursor_positions = {
+    instance.expanded_server = nil
+    instance.active_capability = nil
+    instance.cursor_positions = {
         browse_mode = nil, -- Will store [line, col]
         capability_line = nil, -- Will store [line, col]
     }
 
-    return self
+    return instance
 end
 
 function MainView:show_prompts_view()
@@ -78,7 +78,7 @@ function MainView:handle_collapse()
         local next_server_line
 
         -- Find the expanded server's line and next server's line
-        for i, tracked in ipairs(self.interactive_lines) do
+        for _, tracked in ipairs(self.interactive_lines) do
             if tracked.type == "server" then
                 if tracked.context.name == self.expanded_server then
                     expanded_server_line = tracked.line
@@ -138,6 +138,9 @@ function MainView:handle_edit()
     local line = cursor[1]
 
     local type, context = self:get_line_info(line)
+    if not type or not context then
+        return
+    end
     local server_name = context.name
     if type == "server" then
         local is_native = native.is_native_server(server_name)
@@ -147,7 +150,7 @@ function MainView:handle_edit()
         local config = State.servers_config[server_name] or {}
         local text = utils.pretty_json(vim.json.encode({
             [server_name] = config,
-        }))
+        }) or "")
         ui_utils.multiline_input("Edit '" .. server_name .. "' Config", text, function(input)
             if text == input then
                 return
@@ -157,6 +160,8 @@ function MainView:handle_edit()
                 State.hub_instance:remove_server_config(server_name)
                 vim.notify("Server " .. server_name .. " deleted", vim.log.levels.INFO)
             end
+            ---@cast new_name string
+            ---@cast new_config table
             State.hub_instance:update_server_config(new_name, new_config, { merge = false })
             vim.notify("Server " .. new_name .. " updated", vim.log.levels.INFO)
         end, {
@@ -179,6 +184,8 @@ function MainView:handle_edit()
                     return false
                 end
                 local new_name, new_config = next(result)
+                ---@cast new_name string
+                ---@cast new_config table
                 local valid = validation.validate_server_config(new_name, new_config)
                 if not valid.ok then
                     vim.notify(valid.error.message, vim.log.levels.ERROR)
@@ -198,6 +205,9 @@ function MainView:handle_delete()
     local line = cursor[1]
 
     local type, context = self:get_line_info(line)
+    if not type or not context then
+        return
+    end
     if type == "server" then
         local server_name = context.name
         local is_native = native.is_native_server(server_name)
@@ -234,6 +244,9 @@ function MainView:handle_action(line_override, context_override)
     else
         type, context = self:get_line_info(line)
     end
+    if not type or not context then
+        return
+    end
     if type == "breadcrumb" then
         self:show_prompts_view()
     elseif type == "server" then
@@ -243,8 +256,6 @@ function MainView:handle_action(line_override, context_override)
                 self.expanded_server = nil -- collapse
                 self:draw()
             else
-                -- When expanding new server
-                local prev_expanded = self.expanded_server
                 self.expanded_server = context.name -- expand
                 self:draw()
 
@@ -361,7 +372,9 @@ function MainView:setup_active_mode()
             },
             ["o"] = {
                 action = function()
+                    ---@diagnostic disable-next-line: undefined-field
                     if self.active_capability.handle_text_box then
+                        ---@diagnostic disable-next-line: undefined-field
                         self.active_capability:handle_text_box(vim.api.nvim_win_get_cursor(0)[1])
                     end
                 end,
@@ -369,7 +382,9 @@ function MainView:setup_active_mode()
             },
             ["<Tab>"] = {
                 action = function()
+                    ---@diagnostic disable-next-line: undefined-field
                     if self.active_capability.handle_tab then
+                        ---@diagnostic disable-next-line: undefined-field
                         self.active_capability:handle_tab()
                     end
                 end,
@@ -580,7 +595,7 @@ local function sort_servers(servers)
 end
 
 --- Render a server section
----@param title string Section title
+---@param title? string Section title
 ---@param servers table[] List of servers
 ---@param config_source table Config source for the servers
 ---@param current_line number Current line number

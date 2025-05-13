@@ -1,3 +1,4 @@
+---@diagnostic disable: unused-local
 ---[[
 --- Marketplace view for MCPHub UI
 --- Browse, search and install MCP servers
@@ -14,26 +15,27 @@ local validation = require("mcphub.utils.validation")
 ---@class MarketplaceView: View
 ---@field active_mode "browse"|"details" Current view mode
 ---@field selected_server MarketplaceItem|nil Currently selected server
+---@field cursor_positions table
 local MarketplaceView = setmetatable({}, {
     __index = View,
 })
 MarketplaceView.__index = MarketplaceView
 
 function MarketplaceView:new(ui)
-    local self = View:new(ui, "marketplace") -- Create base view with name
-    self = setmetatable(self, MarketplaceView)
+    local instance = View:new(ui, "marketplace") -- Create base view with name
+    instance = setmetatable(instance, MarketplaceView)
 
     -- Initialize state
-    self.active_mode = "browse"
-    self.selected_server = nil
-    self.cursor_positions = {
+    instance.active_mode = "browse"
+    instance.selected_server = nil
+    instance.cursor_positions = {
         browse_mode = nil, -- Will store [line, col]
         details_mode = nil, -- Will store [line, col]
     }
     --  Setup initial keymaps (mode-specific keymaps set in setup_active_mode)
-    self.keymaps = {}
+    instance.keymaps = {}
 
-    return self
+    return instance
 end
 
 -- Add this new method to handle visual selection hints
@@ -59,8 +61,8 @@ function MarketplaceView:update_visual_selection_hints()
     if not self._visual_keymap_set then
         vim.api.nvim_buf_set_keymap(self.ui.buffer, "v", "a", "", {
             callback = function()
-                local visual_context = ui_utils.get_selection(self.ui.buffer)
-                local lines = visual_context.lines
+                local v_context = ui_utils.get_selection(self.ui.buffer)
+                local lines = v_context.lines
                 local selected_text = table.concat(lines, "\n")
                 if selected_text and #selected_text > 0 then
                     self:open_config_editor(selected_text)

@@ -6,7 +6,6 @@ local Installers = require("mcphub.utils.installers")
 local prompt_utils = require("mcphub.utils.prompt")
 
 ---@class CreateServerHandler : CapabilityHandler
----@field super CapabilityHandler
 local CreateServerHandler = setmetatable({}, { __index = Base })
 CreateServerHandler.__index = CreateServerHandler
 CreateServerHandler.type = "create_server"

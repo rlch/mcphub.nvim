@@ -6,19 +6,17 @@ local NuiLine = require("mcphub.utils.nuiline")
 local State = require("mcphub.state")
 local Text = require("mcphub.utils.text")
 local View = require("mcphub.ui.views.base")
-local utils = require("mcphub.utils")
 local validation = require("mcphub.utils.validation")
 
----@class ConfigView
----@field super View
+---@class ConfigView:View
 local ConfigView = setmetatable({}, {
     __index = View,
 })
 ConfigView.__index = ConfigView
 
 function ConfigView:new(ui)
-    local self = View:new(ui, "config") -- Create base view with name
-    return setmetatable(self, ConfigView)
+    local instance = View:new(ui, "config") -- Create base view with name
+    return setmetatable(instance, ConfigView)
 end
 
 function ConfigView:before_enter()
@@ -66,7 +64,7 @@ end
 function ConfigView:render()
     -- Get base header
     local lines = self:render_header(false)
-    local width = self:get_width()
+    -- local width = self:get_width()
 
     -- Show config file path
     if State.config and State.config.config then

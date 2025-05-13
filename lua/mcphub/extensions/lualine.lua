@@ -89,14 +89,16 @@ function M:manage_spinner()
     local should_show = vim.g.mcphub_executing and M.is_connected()
     if should_show and not timer then
         timer = vim.loop.new_timer()
-        timer:start(
-            0,
-            spinner_interval,
-            vim.schedule_wrap(function()
-                current_frame = (current_frame % #spinner_frames) + 1
-                vim.cmd("redrawstatus")
-            end)
-        )
+        if timer then
+            timer:start(
+                0,
+                spinner_interval,
+                vim.schedule_wrap(function()
+                    current_frame = (current_frame % #spinner_frames) + 1
+                    vim.cmd("redrawstatus")
+                end)
+            )
+        end
     elseif not should_show and timer then
         timer:stop()
         timer:close()

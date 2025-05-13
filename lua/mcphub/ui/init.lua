@@ -1,7 +1,7 @@
----@brief [[
+---[[
 --- UI Core for MCPHub
 --- Handles window/buffer management and view system
----@brief ]]
+---]]
 local State = require("mcphub.state")
 local hl = require("mcphub.utils.highlights")
 local utils = require("mcphub.utils")
@@ -233,6 +233,9 @@ function UI:resize_window()
     self:render()
 end
 
+--- Create a floating window
+---@private
+---@return number Window handle
 function UI:create_window()
     if not self.buffer or not vim.api.nvim_buf_is_valid(self.buffer) then
         self:create_buffer()
@@ -366,6 +369,7 @@ function UI:cleanup()
 end
 
 --- Toggle UI visibility
+--- @param args? table
 function UI:toggle(args)
     if self.window and vim.api.nvim_win_is_valid(self.window) then
         self:cleanup()
@@ -395,6 +399,7 @@ function UI:switch_view(view_name)
 end
 
 --- Show the UI window
+--- @param args? table
 function UI:show(args)
     self.context = utils.get_buf_info(vim.api.nvim_get_current_buf(), args)
     -- Create/show window if needed

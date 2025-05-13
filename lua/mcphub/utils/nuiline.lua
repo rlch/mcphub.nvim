@@ -4,6 +4,7 @@ Source: https://github.com/MunifTanjim/nui.nvim/blob/main/lua/nui/line/init.lua
 License: MIT ]]
 local NuiText = require("mcphub.utils.nuitext")
 
+---@class NuiLine
 local Line = {}
 Line.__index = Line
 

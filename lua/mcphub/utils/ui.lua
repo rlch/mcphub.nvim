@@ -1,6 +1,10 @@
 local M = {}
 local Text = require("mcphub.utils.text")
 
+---@param title string Title of the floating window
+---@param content string Content to be displayed in the floating window
+---@param on_save fun(new_content:string) Callback function to be called when the user saves the content
+---@param opts {filetype?: string, validate?: function, show_footer?: boolean, start_insert?: boolean, on_cancel?: function} Options for the floating window
 function M.multiline_input(title, content, on_save, opts)
     opts = opts or {}
     local bufnr = vim.api.nvim_create_buf(false, true)

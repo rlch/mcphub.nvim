@@ -31,6 +31,8 @@ local tool_schemas = {
     },
 }
 
+---@param hub MCPHub.Hub
+---@return string
 function M.system_prompt(hub)
     local prompts = hub:generate_prompts({
         use_mcp_tool_example = xml2lua.toXml({ tools = { tool_schemas.use_mcp_tool } }),

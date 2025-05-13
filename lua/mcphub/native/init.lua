@@ -1,7 +1,6 @@
 local Error = require("mcphub.utils.errors")
 local NativeServer = require("mcphub.native.utils.server")
 local State = require("mcphub.state")
-local log = require("mcphub.utils.log")
 local validate = require("mcphub.utils.validation")
 
 ---@class MCPHub.Native
@@ -19,6 +18,7 @@ function Native.is_native_server(server_name)
     return nil
 end
 
+---@param err MCPError Error to handle
 local function handle_error(err)
     State:add_error(err)
 end
@@ -50,7 +50,7 @@ function Native.register(def)
     -- Create server instance
     local server = NativeServer:new(def)
     if not server then
-        handle_error("Failed to create native server instance")
+        handle_error(Error("RUNTIME", Error.Types.NATIVE.INVALID_SCHEMA, "Failed to create native server"))
         return nil
     end
 

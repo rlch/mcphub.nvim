@@ -1,6 +1,11 @@
 local M = {}
 local ui_utils = require("mcphub.utils.ui")
 
+---@alias MCPCallParams {errors: string[], action: MCPHubToolType, server_name: string, tool_name: string, uri: string, arguments: table}
+
+---@param params {server_name: string, tool_name: string, uri: string, tool_input: table | string}
+---@param action_name MCPHubToolType
+---@return MCPCallParams
 function M.parse_params(params, action_name)
     params = params or {}
 
@@ -13,7 +18,7 @@ function M.parse_params(params, action_name)
         if json_ok then
             arguments = decode_result or {}
         else
-            arguments = nil
+            arguments = {}
         end
     end
     local errors = {}
@@ -43,6 +48,8 @@ function M.parse_params(params, action_name)
     }
 end
 
+---@param arguments MCPPromptArgument[]
+---@param callback fun(values: string[])
 function M.collect_arguments(arguments, callback)
     local values = {}
     local should_proceed = true
@@ -90,6 +97,8 @@ function M.collect_arguments(arguments, callback)
     end
 end
 
+---Add slash commands to Avante for all mcp servers
+---@param enabled boolean
 function M.setup_avante_slash_commands(enabled)
     if not enabled then
         return
@@ -123,16 +132,16 @@ function M.setup_avante_slash_commands(enabled)
             local description = prompt.description or ""
             local arguments = prompt.arguments or {}
             if type(description) == "function" then
-                local ok, desc = pcall(description, prompt)
-                if ok then
+                local desc_ok, desc = pcall(description, prompt)
+                if desc_ok then
                     description = desc or ""
                 else
                     description = "Error in description function: " .. (desc or "")
                 end
             end
             if type(arguments) == "function" then
-                local ok, args = pcall(arguments, prompt)
-                if ok then
+                local args_ok, args = pcall(arguments, prompt)
+                if args_ok then
                     arguments = args or {}
                 else
                     vim.notify("Error in arguments function: " .. (args or ""), vim.log.levels.ERROR)
@@ -200,6 +209,9 @@ function M.setup_avante_slash_commands(enabled)
     end)
 end
 
+---Create the confirmation prompt for mcp tool
+---@param params MCPCallParams
+---@return string
 function M.get_mcp_tool_prompt(params)
     local action_name = params.action
     local server_name = params.server_name
@@ -234,12 +246,14 @@ function M.get_mcp_tool_prompt(params)
     return msg
 end
 
+---@param params MCPCallParams
+---@return boolean, boolean
 function M.show_mcp_tool_prompt(params)
     local msg = M.get_mcp_tool_prompt(params)
     local confirm = vim.fn.confirm(msg, "&Yes\n&No\n&Cancel", 1)
     if confirm == 3 then
         return false, true -- false for not confirmed, true for cancelled
     end
-    return confirm == 1
+    return confirm == 1, false -- true for confirmed, false for not confirmed
 end
 return M

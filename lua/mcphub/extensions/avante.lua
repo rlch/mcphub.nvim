@@ -56,6 +56,7 @@ local tool_schemas = {
     },
 }
 
+---@return table,table
 function M.mcp_tool()
     for action_name, schema in pairs(tool_schemas) do
         schema.func = function(args, on_log, on_complete)
@@ -127,6 +128,7 @@ function M.mcp_tool()
         }
         M[action_name] = schema
     end
+    ---@diagnostic disable-next-line: redundant-return-value
     return unpack(vim.tbl_values(tool_schemas))
 end
 

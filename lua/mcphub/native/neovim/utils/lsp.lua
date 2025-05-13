@@ -1,7 +1,7 @@
 local M = {}
 
 -- Get all diagnostics from all buffers
----@return { bufnr: number, severity: number, message: string, lnum: number, col: number }[]
+---@return vim.Diagnostic[]
 function M.get_all_diagnostics()
     local all_diags = {}
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
@@ -16,7 +16,7 @@ end
 
 -- Get diagnostics by severity level
 ---@param severity string "ERROR"|"WARN"|"INFO"|"HINT"
----@return { bufnr: number, severity: number, message: string, lnum: number, col: number }[]
+---@return vim.Diagnostic[]
 function M.get_diagnostics_by_severity(severity)
     local sev_num = vim.diagnostic.severity[severity:upper()]
     if not sev_num then

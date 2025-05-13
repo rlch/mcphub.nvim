@@ -2,21 +2,15 @@ local highlights = require("mcphub.utils.highlights").groups
 local ImageCache = require("mcphub.utils.image_cache")
 local NuiLine = require("mcphub.utils.nuiline")
 local Text = require("mcphub.utils.text")
-local ui_utils = require("mcphub.utils.ui")
 
 ---@class CapabilityHandler
----@field name string
----@field server_name string Name of the server this capability belongs to
----@field info table Raw capability info from the server
----@field def table Definition of the capability
----@field state table Current state of the capability execution
----@field interactive_lines { line: number, type: string, context: any}[] List of interactive lines
 local CapabilityHandler = {
     type = nil, -- to be set by subclasses
 }
 CapabilityHandler.__index = CapabilityHandler
 
 function CapabilityHandler:new(server_name, capability_info, view)
+    ---@class CapabilityHandler
     local handler = setmetatable({
         name = capability_info.def
                 and (capability_info.def.name or capability_info.def.uri or capability_info.def.uriTemplate)
@@ -69,7 +63,7 @@ end
 
 -- Common highlighting
 function CapabilityHandler:handle_cursor_move(view, line)
-    local type, context = self:get_line_info(line)
+    local type, _ = self:get_line_info(line)
     if not type then
         return
     end
@@ -102,9 +96,7 @@ function CapabilityHandler:handle_input(prompt, default, callback)
 end
 
 -- Text box handling
-function CapabilityHandler:open_text_box(title, content, on_save)
-    ui_utils.multiline_input(title, content, on_save)
-end
+function CapabilityHandler:open_text_box(...) end
 
 -- Common section rendering utilities
 function CapabilityHandler:render_section_start(title, highlight)
@@ -189,7 +181,7 @@ function CapabilityHandler:render_output(output)
         if #lines > 0 then
             vim.list_extend(lines, self:render_section_content({ "  " }, 1))
         end
-        for i, blob in ipairs(output.blobs) do
+        for i, _ in ipairs(output.blobs) do
             local blob_line = NuiLine():append("Blob " .. i .. ": Blob data cannot be shown", highlights.muted)
             vim.list_extend(lines, self:render_section_content({ blob_line }, 1))
         end
@@ -247,11 +239,12 @@ function CapabilityHandler:execute()
     error(string.format("execute() not implemented for capability type: %s", self.type))
 end
 
-function CapabilityHandler:handle_action(line)
+function CapabilityHandler:handle_action(...)
     error(string.format("handle_action() not implemented for capability type: %s", self.type))
 end
 
-function CapabilityHandler:render(line_offset)
+---@return NuiLine[]
+function CapabilityHandler:render(...)
     error(string.format("render() not implemented for capability type: %s", self.type))
 end
 

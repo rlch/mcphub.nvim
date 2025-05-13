@@ -5,10 +5,8 @@ local Text = require("mcphub.utils.text")
 local highlights = require("mcphub.utils.highlights").groups
 local Handlers = require("mcphub.utils.handlers")
 local log = require("mcphub.utils.log")
-local validation = require("mcphub.utils.validation")
 
 ---@class PromptHandler : CapabilityHandler
----@field super CapabilityHandler
 local PromptHandler = setmetatable({}, {
     __index = Base,
 })
@@ -17,15 +15,15 @@ PromptHandler.type = "prompt"
 PromptHandler.arguments = {}
 
 function PromptHandler:new(server_name, capability_info, view)
-    local self = Base:new(server_name, capability_info, view)
-    setmetatable(self, PromptHandler)
-    self.state = vim.tbl_extend("force", self.state, {
+    local instance = Base:new(server_name, capability_info, view)
+    setmetatable(instance, PromptHandler)
+    instance.state = vim.tbl_extend("force", instance.state, {
         params = {
             values = {},
             errors = {},
         },
     })
-    return self
+    return instance
 end
 
 function PromptHandler:format_param_type(param)
@@ -166,8 +164,8 @@ function PromptHandler:execute()
                 hubui = State.ui_instance,
             },
             parse_response = true,
-            callback = function(response, err)
-                self:handle_response(response, err)
+            callback = function(response, error)
+                self:handle_response(response, error)
                 self.view:draw()
             end,
         })
@@ -282,8 +280,8 @@ function PromptHandler:get_arguments(arguments)
             parsedArguments = schema or base
         end
     end
-    local function validate_arguments(arguments, name)
-        for _, arg in ipairs(arguments) do
+    local function validate_arguments(args, name)
+        for _, arg in ipairs(args) do
             if type(arg) ~= "table" then
                 return {
                     ok = false,
@@ -326,6 +324,7 @@ function PromptHandler:render(line_offset)
 
     -- Handle text content
     if self.state.result then
+        ---@diagnostic disable-next-line: undefined-field
         local messages = self.state.result.messages or {}
         for _, message in ipairs(messages) do
             vim.list_extend(lines, self:render_section_content({ " " }))

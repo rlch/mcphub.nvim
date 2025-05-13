@@ -52,6 +52,7 @@ local function get_qf_entries(buf_info)
     return result
 end
 
+---@type MCPResource
 return {
     name = "Buffer",
     description = "Get detailed information about the currently active buffer including content, cursor position, and buffer metadata",

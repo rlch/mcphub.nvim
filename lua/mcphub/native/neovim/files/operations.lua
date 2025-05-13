@@ -19,7 +19,8 @@ local function get_file_info(path)
     }
 end
 
--- Basic file operations tools
+---Basic file operations tools
+---@type MCPTool[]
 local file_tools = {
     {
         name = "read_file",

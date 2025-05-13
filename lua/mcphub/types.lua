@@ -1,3 +1,5 @@
+---@meta
+
 ---@class MarketplaceItem
 ---@field mcpId string
 ---@field name string
@@ -10,6 +12,7 @@
 ---@field requiresApiKey boolean
 ---@field isRecommended boolean
 ---@field githubStars integer
+---@field githubUrl string
 ---@field downloadCount integer
 ---@field createdAt string
 ---@field updatedAt string
@@ -40,9 +43,9 @@
 ---@field displayName string
 ---@field description string
 ---@field transportType string
----@field status string
+---@field status MCPHub.Constants.ConnectionStatus
 ---@field error string
----@field capabilities table
+---@field capabilities MCPCapabilities
 ---@field uptime number
 ---@field lastStarted string
 ---@field authorizationUrl string
@@ -53,3 +56,22 @@
 ---@field timestamp number
 ---@field data table<string,any>
 ---@field code number
+
+---@class MCPResponseOutput
+---@field text string
+---@field images table[]
+---@field blobs table[]
+---@field audios table[]
+---@field error? string
+
+---@class EnhancedMCPPrompt : MCPPrompt
+---@field server_name string
+
+---@class EnhancedMCPResourceTemplate : MCPResourceTemplate
+---@field server_name string
+
+---@class EnhancedMCPResource : MCPResource
+---@field server_name string
+
+---@class EnhancedMCPTool : MCPTool
+---@field server_name string

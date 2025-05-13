@@ -1,5 +1,6 @@
 ---@class BaseResponse
 ---@field output_handler function|nil Async callback handler
+---@field error fun(self: BaseResponse, message: string, details?: table): table Send error response
 ---@field result table Response data
 local BaseResponse = {}
 BaseResponse.__index = BaseResponse

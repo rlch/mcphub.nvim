@@ -5,7 +5,6 @@ local Text = require("mcphub.utils.text")
 local highlights = require("mcphub.utils.highlights").groups
 
 ---@class ResourceTemplateHandler : CapabilityHandler
----@field super CapabilityHandler
 local ResourceTemplateHandler = setmetatable({}, {
     __index = Base,
 })

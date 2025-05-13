@@ -35,6 +35,7 @@ local defaults = {
         },
     },
     extensions = {
+        ---@type MCPHubAvanteConfig
         avante = {
             enabled = true,
             make_slash_commands = true,

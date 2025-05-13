@@ -1,5 +1,18 @@
 local M = {}
 
+---@class FileInfo
+---@field name string # File name or path
+---@field type string # File type (file/directory/etc)
+---@field size number # File size in bytes
+---@field modified number # Last modification timestamp
+
+---@class DirectoryInfo
+---@field path string # Current directory path
+---@field is_git boolean # Whether the directory is a git repository
+---@field files FileInfo[] # List of files in the directory
+
+---@param path? string # Directory path to scan (defaults to current working directory)
+---@return DirectoryInfo
 function M.get_directory_info(path)
     path = path or vim.loop.cwd()
     -- Check if git repo
@@ -68,7 +81,6 @@ end
 ---@field buffers BufferInfo[]
 
 ---@return EditorInfo
-
 function M.get_editor_info()
     local buffers = vim.fn.getbufinfo({ buflisted = 1 })
     local valid_buffers = {}

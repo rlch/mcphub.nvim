@@ -1,6 +1,7 @@
 local buf_utils = require("mcphub.native.neovim.utils.buffer")
 local os_utils = require("mcphub.native.neovim.utils.os")
 
+---@type MCPResource
 return {
     name = "Environment",
     description = "This resource gives comprehensive information about the workspace, editor and OS. Includes directory structure, visible and loaded buffers along with the OS information.",

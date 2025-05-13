@@ -175,6 +175,7 @@ local function handle_write_file(req, res)
     })
 end
 
+---@type MCPTool
 return {
     name = "write_file",
     description = "Write content to a file",

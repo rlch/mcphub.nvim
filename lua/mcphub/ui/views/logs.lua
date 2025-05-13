@@ -2,14 +2,12 @@
 --- Logs view for MCPHub UI
 --- Shows server output and errors
 ---@brief ]]
-local NuiLine = require("mcphub.utils.nuiline")
 local State = require("mcphub.state")
 local Text = require("mcphub.utils.text")
 local View = require("mcphub.ui.views.base")
 local renderer = require("mcphub.utils.renderer")
 
----@class LogsView
----@field super View
+---@class LogsView:View
 ---@field active_tab "logs"|"issues" Currently active tab
 local LogsView = setmetatable({}, {
     __index = View,
@@ -17,9 +15,10 @@ local LogsView = setmetatable({}, {
 LogsView.__index = LogsView
 
 function LogsView:new(ui)
-    local self = View:new(ui, "logs") -- Create base view with name
-    self.active_tab = "logs"
-    return setmetatable(self, LogsView)
+    ---@class View
+    local instance = View:new(ui, "logs") -- Create base view with name
+    instance.active_tab = "logs"
+    return setmetatable(instance, LogsView)
 end
 
 function LogsView:render_tabs()

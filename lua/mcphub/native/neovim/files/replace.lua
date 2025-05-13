@@ -306,6 +306,7 @@ local function handle_replace_file(req, res)
     })
 end
 
+---@type MCPTool
 return {
     name = "replace_in_file",
     description = [[Replace sections of content in an existing file using SEARCH/REPLACE blocks.

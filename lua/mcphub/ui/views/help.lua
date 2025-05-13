@@ -2,30 +2,29 @@
 --- Help view for MCPHub UI
 --- Shows plugin documentation and keybindings
 ---@brief ]]
-local NuiLine = require("mcphub.utils.nuiline")
 local Text = require("mcphub.utils.text")
 local View = require("mcphub.ui.views.base")
 
----@class HelpView
----@field super View
----@field active_tab "readme"|"native"|"changelog" Currently active tab
+---@class HelpView:View
+---@field active_tab string Currently active tab
 local HelpView = setmetatable({}, {
     __index = View,
 })
 HelpView.__index = HelpView
 
 function HelpView:new(ui)
-    local self = View:new(ui, "help")
-    self.tabs = {
+    ---@class View
+    local instance = View:new(ui, "help")
+    instance.tabs = {
         { id = "welcome", text = "Welcome" },
         { id = "troubleshooting", text = "Troubleshooting" },
         { id = "readme", text = "README" },
         { id = "native", text = "Native Servers" },
         { id = "changelog", text = "Changelog" },
     }
-    self.active_tab = self.tabs[1].id
-    self = setmetatable(self, HelpView)
-    return self
+    instance.active_tab = instance.tabs[1].id
+    instance = setmetatable(instance, HelpView)
+    return instance
 end
 
 function HelpView:cycle_tab()

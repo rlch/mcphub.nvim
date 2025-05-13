@@ -337,7 +337,7 @@ end
 --- @param prompt_name string
 --- @param args table
 --- @param opts? { parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
---- @return table|nil, string|nil If no callback is provided, returns response and error
+--- @return {messages : {role:"user"| "assistant"|"system", output: MCPResponseOutput}[]}|nil, string|nil If no callback is provided, returns response and error
 function MCPHub:get_prompt(server_name, prompt_name, args, opts)
     opts = opts or {}
     if opts.callback then
@@ -417,8 +417,8 @@ end
 --- @param server_name string
 --- @param tool_name string
 --- @param args table
---- @param opts? {parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
---- @return table|nil, string|nil If no callback is provided, returns response and error
+--- @param opts? {parse_response?: boolean, callback?: fun(res: MCPResponseOutput? ,err: string?), timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @return MCPResponseOutput?, string? If no callback is provided, returns response and error
 function MCPHub:call_tool(server_name, tool_name, args, opts)
     opts = opts or {}
     if opts.callback then
@@ -496,8 +496,8 @@ end
 --- Access a server resource
 --- @param server_name string
 --- @param uri string
---- @param opts? { parse_response?: boolean, callback?: function, timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
---- @return table|nil, string|nil If no callback is provided, returns response and error
+--- @param opts? { parse_response?: boolean, callback?: fun(res: MCPResponseOutput?,err:string?), timeout?: number } Optional callback(response: table|nil, error?: string) and timeout in ms (default 30s)
+--- @return MCPResponseOutput?, string? If no callback is provided, returns response and error
 function MCPHub:access_resource(server_name, uri, opts)
     opts = opts or {}
     if opts.callback then
@@ -1094,6 +1094,8 @@ local function resolve_native_server(native_server)
     return server
 end
 
+---@param include_disabled? boolean
+---@return MCPServer[]
 function MCPHub:get_servers(include_disabled)
     include_disabled = include_disabled == true
     if not self:is_ready() then
@@ -1124,6 +1126,7 @@ function MCPHub:get_servers(include_disabled)
     return filtered_servers
 end
 
+---@return EnhancedMCPPrompt[]
 function MCPHub:get_prompts()
     local active_servers = self:get_servers()
     local prompts = {}
@@ -1142,6 +1145,7 @@ function MCPHub:get_prompts()
     return prompts
 end
 
+---@return EnhancedMCPResource[]
 function MCPHub:get_resources()
     local active_servers = self:get_servers()
     local resources = {}
@@ -1160,6 +1164,7 @@ function MCPHub:get_resources()
     return resources
 end
 
+---@return EnhancedMCPResourceTemplate[]
 function MCPHub:get_resource_templates()
     local active_servers = self:get_servers()
     local resource_templates = {}
@@ -1178,6 +1183,7 @@ function MCPHub:get_resource_templates()
     return resource_templates
 end
 
+---@return EnhancedMCPTool[]
 function MCPHub:get_tools()
     local active_servers = self:get_servers()
     local tools = {}
@@ -1196,6 +1202,9 @@ function MCPHub:get_tools()
     return tools
 end
 
+--- Convert server to text format
+--- @param server MCPServer
+--- @return string
 function MCPHub:convert_server_to_text(server)
     local is_native = native.is_native_server(server.name)
     local server_config = is_native and State.native_servers_config[server.name] or State.servers_config[server.name]
@@ -1203,6 +1212,10 @@ function MCPHub:convert_server_to_text(server)
     return prompt_utils.server_to_text(filtered_server)
 end
 
+--- Get active servers prompt
+--- @param add_example? boolean Whether to add example to the prompt
+--- @param include_disabled? boolean Whether to include disabled servers
+--- @return string
 function MCPHub:get_active_servers_prompt(add_example, include_disabled)
     include_disabled = include_disabled ~= nil and include_disabled or self.auto_toggle_mcp_servers
     add_example = add_example ~= false

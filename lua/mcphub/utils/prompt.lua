@@ -9,6 +9,7 @@ local log = require("mcphub.utils.log")
 local native = require("mcphub.native")
 local validation = require("mcphub.utils.validation")
 
+---@return string
 local function get_header()
     return [[
 # MCP SERVERS
@@ -17,6 +18,8 @@ The Model Context Protocol (MCP) enables communication between the system and lo
 ]]
 end
 
+---@param server_name string
+---@return string
 local function format_custom_instructions(server_name)
     local is_native = native.is_native_server(server_name)
     local server_config = (is_native and State.native_servers_config[server_name] or State.servers_config[server_name])
@@ -29,6 +32,8 @@ local function format_custom_instructions(server_name)
     return ""
 end
 
+---@param def MCPServer|NativeServer|MCPTool|MCPResource|MCPResourceTemplate
+---@return string
 function M.get_description(def)
     local description = def.description or ""
     if type(description) == "function" then
@@ -42,6 +47,8 @@ function M.get_description(def)
     return description
 end
 
+---@param def MCPTool
+---@return table
 function M.get_inputSchema(def)
     local base = {
         type = "object",
@@ -71,6 +78,8 @@ function M.get_inputSchema(def)
     return parsedSchema
 end
 
+---@param tools MCPTool[]
+---@return string
 local function format_tools(tools)
     if not tools or #tools == 0 then
         return ""
@@ -99,6 +108,9 @@ local function remove_functions(obj)
     return new_obj
 end
 
+---@param resources MCPResource[]
+---@param templates MCPResourceTemplate[]
+---@return string
 local function format_resources(resources, templates)
     if not resources or #resources == 0 then
         return ""
@@ -181,6 +193,8 @@ Example: Requesting to access an MCP resource
     )
 end
 
+---@param server MCPServer
+---@return string
 function M.server_to_text(server)
     local text = ""
     -- Add server section
@@ -215,14 +229,21 @@ function M.server_to_text(server)
     return text
 end
 
+---@param servers MCPServer[]
+---@param add_example boolean
+---@param enable_toggling_mcp_servers boolean
+---@return string
 function M.get_active_servers_prompt(servers, add_example, enable_toggling_mcp_servers)
     add_example = add_example ~= false
     enable_toggling_mcp_servers = enable_toggling_mcp_servers ~= false
     local prompt = get_header()
 
+    ---@type MCPServer[]
     local connected_servers = vim.tbl_filter(function(s)
         return s.status == "connected"
     end, servers)
+
+    ---@type MCPServer[]
     local disabled_servers = vim.tbl_filter(function(s)
         return s.status == "disabled"
     end, servers)
@@ -302,9 +323,11 @@ access_mcp_resource
     return prompt .. (add_example and example or "")
 end
 
+---@param response {result: {messages: {role:string, content: table}[]}}|nil
+---@return {messages : {role:"user"| "assistant"|"system", output: MCPResponseOutput}[]}
 function M.parse_prompt_response(response)
     if response == nil then
-        return { text = "", images = {}, blobs = {}, audios = {} }
+        return { messages = {} }
     end
     local result = response.result or {}
     local messages = {}
@@ -350,6 +373,8 @@ function M.parse_prompt_response(response)
     }
 end
 
+---@param response? table
+---@return MCPResponseOutput
 function M.parse_tool_response(response)
     if response == nil then
         return { error = nil, text = "", images = {}, blobs = {}, audios = {} }
@@ -410,6 +435,8 @@ function M.parse_tool_response(response)
     return output
 end
 
+---@param response? table
+---@return MCPResponseOutput
 function M.parse_resource_response(response)
     if response == nil then
         return { text = "", images = {}, blobs = {} }
@@ -469,8 +496,6 @@ function M.parse_resource_response(response)
     return output
 end
 
---TODO: test with wide range of scenarios
---
 --- Get a standardized installation prompt for marketplace servers
 ---@param details table The server details including name, mcpId, githubUrl, etc
 ---@return string The formatted installation prompt

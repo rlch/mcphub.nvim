@@ -65,6 +65,7 @@ local tool_schemas = {
     },
 }
 
+---@param opts MCPHubCodeCompanionConfig
 function M.create_tools(opts)
     local codecompanion = require("codecompanion")
     local has_function_calling = codecompanion.has("function-calling")
@@ -117,6 +118,7 @@ local function silent_assert(condition, message)
     end
 end
 
+---@param opts MCPHubCodeCompanionConfig
 function M.setup(opts)
     opts = vim.tbl_deep_extend("force", {
         make_vars = true,

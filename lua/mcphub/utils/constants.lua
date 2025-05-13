@@ -1,5 +1,15 @@
 local M = {}
 
+---@enum MCPHub.Constants.ConnectionStatus
+M.ConnectionStatus = {
+    CONNECTED = "connected",
+    CONNECTING = "connecting",
+    DISCONNECTED = "disconnected",
+    DISCONNECTING = "disconnecting",
+    UNAUTHORIZED = "unauthorized",
+    DISABLED = "disabled",
+}
+
 ---@enum MCPHub.Constants.EventTypes
 M.EventTypes = {
     HEARTBEAT = "heartbeat",

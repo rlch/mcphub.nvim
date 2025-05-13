@@ -1,5 +1,15 @@
 local M = {}
 
+---@class MCPHUB.OS_INFO
+---@field os_name string
+---@field arch string
+---@field hostname string
+---@field cpu_info uv.cpu_info.cpu[]?
+---@field memory {total :number, free :number}
+---@field cwd string
+---@field env {shell :string, term :string, user :string, home :string}
+
+---@return MCPHUB.OS_INFO
 function M.get_os_info()
     local os_info = {
         os_name = jit.os,

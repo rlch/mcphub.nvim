@@ -16,7 +16,6 @@ local log = require("mcphub.utils.log")
 ---@field mimeType? string Resource MIME type (e.g., "text/plain")
 ---@field uri string Static URI (e.g., "system://info")
 ---@field handler fun(req: ResourceRequest, res: ResourceResponse): nil | table Resource handler function
----
 
 ---@class MCPPromptArgument
 ---@field name string Argument name
@@ -28,7 +27,7 @@ local log = require("mcphub.utils.log")
 ---@field name? string Prompt identifier
 ---@field description? string|fun():string Prompt description or function returning description
 ---@field arguments? MCPPromptArgument[]|fun():MCPPromptArgument[] List of arguments
----@field handler fun(req: PromptRequest, res: PromptResponse): nil | table
+---@field handler? fun(req: PromptRequest, res: PromptResponse): nil | table
 
 ---@class MCPResourceTemplate
 ---@field name? string Template identifier
