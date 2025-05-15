@@ -614,7 +614,7 @@ function MainView:render_servers_section(title, servers, config_source, current_
         table.insert(
             lines,
             Text.pad_line(
-                NuiLine():append("No servers connected " .. "(Install from Marketplace)", Text.highlights.muted)
+                NuiLine():append(" No servers connected " .. "(Install from Marketplace)", Text.highlights.muted)
             )
         )
         table.insert(lines, Text.empty_line())

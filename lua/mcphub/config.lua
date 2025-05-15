@@ -33,6 +33,9 @@ local defaults = {
             relative = "editor",
             zindex = 50,
         },
+        wo = { -- window-scoped options (vim.wo)
+            winhl = "Normal:MCPHubNormal,FloatBorder:MCPHubBorder",
+        },
     },
     extensions = {
         ---@type MCPHubAvanteConfig

@@ -1059,12 +1059,10 @@ sequenceDiagram
 - [x] Support /slash_commands in avante
 - [x] Support streamable-http transport
 - [x] Support OAuth
-- [ ] Add types
+- [x] Add types
 - [ ] Add tests
 - [ ] Support #variables in avante
 - [ ] Better Docs 
-- [ ] ~Composio Integration~
-- [ ] ~Smithery Integration~
 
 
 ## 👏 Acknowledgements

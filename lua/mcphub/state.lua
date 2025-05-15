@@ -9,7 +9,8 @@ local log = require("mcphub.utils.log")
 local State = {
     ---@type "not_started" | "in_progress" | "completed" | "failed" MCPHub setup state
     setup_state = "not_started",
-    config = {}, --[[@as MCPHub.Config]]
+    ---@type MCPHub.Config
+    config = {},
     ---@type table<string, MCPServerConfig>
     servers_config = {},
     ---@type table<string, NativeMCPServerConfig>
