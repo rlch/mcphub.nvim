@@ -76,7 +76,7 @@ export default withMermaid(
               text: "Lua MCP Servers",
               collapsed: true,
               items: [
-                { text: "Why", link: "/mcp/native/why" },
+                { text: "Why", link: "/mcp/native/index" },
                 { text: "Registration", link: "/mcp/native/registration" },
                 { text: "Add Tools", link: "/mcp/native/tools" },
                 { text: "Add Resources", link: "/mcp/native/resources" },
