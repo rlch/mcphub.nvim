@@ -18,7 +18,6 @@ function HelpView:new(ui)
     instance.tabs = {
         { id = "welcome", text = "Welcome" },
         { id = "troubleshooting", text = "Troubleshooting" },
-        { id = "readme", text = "README" },
         { id = "native", text = "Native Servers" },
         { id = "changelog", text = "Changelog" },
     }
@@ -85,23 +84,24 @@ function HelpView:render()
         local welcome_content = [[
 # Welcome to MCPHub!
 
-A powerful Neovim plugin that integrates MCP (Model Context Protocol) servers into your workflow. Configure and manage MCP servers through a centralized config file while providing an intuitive UI for browsing, installing and testing tools and resources.
+MCP Hub is a MCP client for neovim that seamlessly integrates [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers into your editing workflow. It provides an intuitive interface for managing, testing, and using MCP servers with your favorite chat plugins.
+
+> Visit [Documentation](https://ravitemer.github.io/mcphub.nvim/) site for detailed instructions on how to use MCPHub.
 
 ## Support Development
 
-MCPHub is an open-source project that relies on community support to stay active and improve. Your support helps maintain and enhance the plugin.
+MCPHub is an open-source project that relies on community support. Your support helps maintain and enhance the plugin.
 
 - [GitHub Sponsors](https://github.com/sponsors/ravitemer)
 - [Buy me a coffee](https://www.buymeacoffee.com/ravitemer)
 - [⭐ Star us on GitHub](https://github.com/ravitemer/mcphub.nvim)
 
-## Quick Links
-
 ### Get Help & Contribute
+- [View Documentation](https://ravitemer.github.io/mcphub.nvim/) - Learn more about MCPHub
+- [Discord Community](https://discord.gg/NTqfxXsNuN) - Get help and discuss features
 - [Open a Discussion](https://github.com/ravitemer/mcphub.nvim/discussions) - Ask questions and share ideas
 - [Create an Issue](https://github.com/ravitemer/mcphub.nvim/issues) - Report bugs
 - [Report Security Issues](https://github.com/ravitemer/mcphub.nvim/blob/main/SECURITY.md)
-- [View Documentation](lua/mcphub/native/README.md) - Learn more about MCPHub
 
 ### Share with the Community
 - Create your own Native MCP Servers and share them in [Show and Tell](https://github.com/ravitemer/mcphub.nvim/discussions/categories/show-and-tell)
@@ -121,80 +121,8 @@ MCPHub is an open-source project that relies on community support to stay active
 ]]
         vim.list_extend(lines, Text.render_markdown(welcome_content))
     elseif self.active_tab == "troubleshooting" then
-        local troubleshooting_content = [[
-# 🔨 Troubleshooting
-
-1. **Environment Requirements**
-
-   - Ensure these are installed as they're required by most MCP servers:
-     ```bash
-     node --version    # Should be >= 18.0.0
-     python --version  # Should be installed
-     uvx --version    # Should be installed
-     ```
-   - Most server commands use `npx` or `uvx` - verify these work in your terminal
-
-2. LLM Model Issues
-
-   If the LLM isn't making correct tool calls:
-
-   1. **Schema Support**
-   - Models with function calling support (like claude-3.5) work best with Avante's schema format
-   - Only top-tier models handle XML-based tool formats correctly
-   - Consider upgrading to a better model if seeing incorrect tool usage
-
-   2. **Common Tool Call Issues**
-   - Missing `action` field
-   - Incorrect `server_name`
-   - Missing `tool_name` or `uri`
-   - Malformed arguments
-
-   3. **Recommended Models**
-   - GPT-4o
-   - Claude 3.5 Sonnet
-   - Claude 3.7
-   - Gemini 2.0 Flash
-   - Gemini 2.0 Pro
-   - Mistral Large
-
-3. **Port Issues**
-
-   - If you get `EADDRINUSE` error, kill the existing process:
-     ```bash
-     lsof -i :[port]  # Find process ID
-     kill [pid]       # Kill the process
-     ```
-
-4. **Configuration File**
-
-   - Ensure config path is absolute
-   - Verify file contains valid JSON with `mcpServers` key
-   - Check server-specific configuration requirements
-   - Validate server command and args are correct for your system
-
-5. **MCP Server Issues**
-
-   - Validate server configurations using either:
-     - [MCP Inspector](https://github.com/modelcontextprotocol/inspector): GUI tool for verifying server operation
-     - [mcp-cli](https://github.com/wong2/mcp-cli): Command-line tool for testing servers with config files
-   - Check server logs in MCPHub UI (Logs view)
-   - Test tools and resources individually to isolate issues
-
-6. **Need Help?**
-   - First try testing it with [minimal.lua](https://gist.github.com/ravitemer/c85d69542bdfd1a45c6a9849301e4388) 
-   - Feel free to open an [Issue](https://github.com/ravitemer/mcphub.nvim/issues) for bugs or doubts
-   - Create a [Discussion](https://github.com/ravitemer/mcphub.nvim/discussions) for questions, showcase, or feature requests
-
-Note: You can also access the Express server directly at `http://localhost:[config.port]` or at `config.server_url`
-]]
+        local troubleshooting_content = prompt_utils.get_troubleshooting_guide()
         vim.list_extend(lines, Text.render_markdown(troubleshooting_content))
-    elseif self.active_tab == "readme" then
-        local readme = prompt_utils.get_plugin_docs()
-        if readme then
-            vim.list_extend(lines, Text.render_markdown(readme))
-        else
-            table.insert(lines, Text.pad_line("README not found", Text.highlights.error))
-        end
     elseif self.active_tab == "native" then
         -- Native server documentation
         local native_guide = prompt_utils.get_native_server_prompt()

@@ -1,399 +1,207 @@
-*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 06
+*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 16
 
 ==============================================================================
 Table of Contents                              *mcphub.nvim-table-of-contents*
 
-1. MCP Hub                                               |mcphub.nvim-mcp-hub|
-  - ✨ Features & Support Status|mcphub.nvim-mcp-hub-✨-features-&-support-status|
-  - 📦 Installation                  |mcphub.nvim-mcp-hub-📦-installation|
-  - Nix                                              |mcphub.nvim-mcp-hub-nix|
-  - 🚀 Usage                                |mcphub.nvim-mcp-hub-🚀-usage|
-  - 🔌 Extensions                      |mcphub.nvim-mcp-hub-🔌-extensions|
-  - 🎉Lua Native MCP Servers (detailed guide)|mcphub.nvim-mcp-hub-🎉lua-native-mcp-servers-(detailed-guide)|
-  - 🔨 Troubleshooting            |mcphub.nvim-mcp-hub-🔨-troubleshooting|
-  - 🔄 How It Works                  |mcphub.nvim-mcp-hub-🔄-how-it-works|
-  - 🚧 TODO                                  |mcphub.nvim-mcp-hub-🚧-todo|
-  - 👏 Acknowledgements          |mcphub.nvim-mcp-hub-👏-acknowledgements|
-  - 📚 Documentation                |mcphub.nvim-mcp-hub-📚-documentation|
-2. Links                                                   |mcphub.nvim-links|
+1. Welcome to MCP Hub                         |mcphub.nvim-welcome-to-mcp-hub|
+  - Getting Started           |mcphub.nvim-welcome-to-mcp-hub-getting-started|
+  - Next Steps                     |mcphub.nvim-welcome-to-mcp-hub-next-steps|
+2. Installation                                     |mcphub.nvim-installation|
+  - Requirements                       |mcphub.nvim-installation-requirements|
+  - Lazy.nvim                             |mcphub.nvim-installation-lazy.nvim|
+  - NixOS                                     |mcphub.nvim-installation-nixos|
+3. Configuration                                   |mcphub.nvim-configuration|
+  - Default Configuration    |mcphub.nvim-configuration-default-configuration|
+  - Binary mcp-hub Options  |mcphub.nvim-configuration-binary-mcp-hub-options|
+  - Chat-Plugin Related Options|mcphub.nvim-configuration-chat-plugin-related-options|
+  - Plugin Options                  |mcphub.nvim-configuration-plugin-options|
+4. MCP Servers                                       |mcphub.nvim-mcp-servers|
+  - MCP Config File                  |mcphub.nvim-mcp-servers-mcp-config-file|
+  - Lua MCP Servers                  |mcphub.nvim-mcp-servers-lua-mcp-servers|
+5. Extensions                                         |mcphub.nvim-extensions|
+  - Avante Integration             |mcphub.nvim-extensions-avante-integration|
+  - CodeCompanion Integration|mcphub.nvim-extensions-codecompanion-integration|
+  - CopilotChat Integration  |mcphub.nvim-extensions-copilotchat-integration-|
+  - Lualine Integration           |mcphub.nvim-extensions-lualine-integration|
+6. Other                                                   |mcphub.nvim-other|
+7. Links                                                   |mcphub.nvim-links|
 
 ==============================================================================
-1. MCP Hub                                               *mcphub.nvim-mcp-hub*
+1. Welcome to MCP Hub                         *mcphub.nvim-welcome-to-mcp-hub*
 
-<https://www.lua.org> <https://nixos.org> <https://opensource.org/licenses/MIT>
-<https://discord.gg/NTqfxXsNuN>
+MCPHub.nvim is a MCP Client for neovim that seamlessly integrates MCP (Model
+Context Protocol) <https://modelcontextprotocol.io/> servers into your editing
+workflow. It provides an intuitive interface for managing, testing, and using
+MCP servers with your favorite LLM chat plugins.
 
-A powerful Neovim plugin that integrates MCP (Model Context Protocol) servers
-into your workflow. Configure and manage MCP servers through a centralized
-config file while providing an intuitive UI for browsing, installing and
-testing tools and resources. Perfect for LLM integration, offering both
-programmatic API access and interactive testing capabilities through the
-`:MCPHub` command.
 
-**Discord**: Join our Discord server <https://discord.gg/NTqfxXsNuN> for
-discussions, help, and updates
+  [!IMPORTANT] It is recommended to read the below "Getting Started" section
+  before going through the rest of the documentation.
 
->mermaid
-    graph TD
-    subgraph "MCP Servers"
-    subgraph "Native MCP Servers"
-    N1["Buffer (Tools)"]
-    N2["LSP (Resources)"]
-    end
-    subgraph "Community"
-    C1["GitHub (Tools )"]
-    C2["Figma (Tools)"]
-    end
-    end
-    
-    H[MCPHub]
-    M["@mcp tool + MCP Servers in text representation"]
-    
-    subgraph "Chat Plugins"
-    A["Avante + @mcp tool"]
-    CC["CodeCompanion + @mcp tool"]
-    O[Others + @mcp tool]
-    end
-    
-    subgraph "LLM Providers"
-    OAI[OpenAI]
-    AC[Claude]
-    M1[Mistral]
-    G[Grok]
-    D[DeepSeek]
-    end
-    
-    %% MCP Servers provide capabilities
-    N1 & N2 --> H
-    C1 & C2 --> H
-    
-    %% MCPHub transforms capabilities into system prompt
-    H --> M
-    
-    %% Tools to plugins
-    M --> A
-    M --> CC
-    M --> O
-    
-    %% Plugin to LLM connections
-    A --> OAI & AC
-    CC --> M1 & G
-    O --> D
+GETTING STARTED               *mcphub.nvim-welcome-to-mcp-hub-getting-started*
+
+Let’s break down how MCP Hub operates in simple terms:
+
+1. **Declare MCP Servers**- MCP servers are defined in a JSON configuration file
+- Each server can be a local script or a remote endpoint
+- You can configure authentication, environment variables, and other settings
+
+
+
+>js
+      // Example: ~/.config/mcphub/servers.json
+       {
+         "mcpServers": {
+           "fetch": {
+             "command": "uvx",
+             "args": [
+               "mcp-server-fetch"
+             ]
+           },
+           "remote-server": {
+             "url": "https://api.example.com/mcp"
+           }
+         }
+       }
 <
 
-
-Video Demos ~
-
-
-
-
-:PURPLE_HEART: SPONSORS ~
-
-Thank you to the following people:
-
-    
-✨ FEATURES & SUPPORT STATUS*mcphub.nvim-mcp-hub-✨-features-&-support-status*
-
-  ---------------------------------------------------------------------------------
-  Category             Feature              Support            Details
-  -------------------- -------------------- ------------------ --------------------
-  Capabilities                                                 
-
-                       Tools                ✅                 Full support
-
-                       🔔 Tool List Changed ✅                 Real-time updates
-
-                       Resources            ✅                 Full support
-
-                       🔔 Resource List     ✅                 Real-time updates
-                       Changed                                 
-
-                       Resource Templates   ✅                 URI templates
-
-                       Prompts              ✅                 Full support
-
-                       🔔 Prompts List      ✅                 Real-time updates
-                       Changed                                 
-
-                       Roots                ❌                 Not supported
-
-                       Sampling             ❌                 Not supported
-
-  MCP Server                                                   
-  Transports                                                   
-
-                       Streamable-HTTP      ✅                 Primary transport
-                                                               protocol for remote
-                                                               servers
-
-                       SSE                  ✅                 Fallback transport
-                                                               for remote servers
-
-                       STDIO                ✅                 For local servers
-
-  Authentication for                                           
-  remote servers                                               
-
-                       OAuth                ✅                 With PKCE flow
-
-                       Headers              ✅                 For API keys/tokens
-
-  Chat Integration                                             
-
-                       Avante.nvim          ✅                 Tools, resources,
-                                                               resourceTemplates,
-                                                               prompts(as
-                                                               slash_commands)
-
-                       CodeCompanion.nvim   ✅                 Tools, resources,
-                                                               resourceTemplates,
-                                                               prompts (as
-                                                               slash_commands)
-
-                       CopilotChat.nvim     ✅                 In-built support
-                                                               Draft
-
-  Marketplace                                                  
-
-                       Server Discovery     ✅                 Browse from verified
-                                                               MCP servers
-
-                       Installation         ✅                 Manual and auto
-                                                               install with AI
-
-  Advanced                                                     
-
-                       Smart File-watching  ✅                 Smart updates with
-                                                               config file watching
-
-                       Multi-instance       ✅                 All neovim instances
-                                                               stay in sync
-
-                       Shutdown-delay       ✅                 Can run as systemd
-                                                               service with
-                                                               configure delay
-                                                               before stopping the
-                                                               hub
-
-                       Lua Native MCP       ✅                 Write once , use
-                       Servers                                 everywhere. Can
-                                                               write tools,
-                                                               resources, prompts
-                                                               directly in lua
-  ---------------------------------------------------------------------------------
-Native MCP Server Support ~
-
-- Create Lua-based MCP servers directly in Neovim (detailed guide <lua/mcphub/native/NATIVE_SERVER_LLM.md>)
-- Automatically create lua native MCP servers using LLMs with built-in templates
-- Write once, use everywhere design
-- Clean chained API for tools, resources, and prompts
-- Full URI-based resource system with templates
-- Chat-style prompts with role management
-- Centralized lifecycle management
-
-Built-in MCP Servers ~
-
-- **Neovim Server**: Pre-configured with essential development tools
-- File operations (read, write, search, replace)
-- Command execution and terminal integration
-- LSP integration with diagnostics
-- Buffer and environment access
-- Interactive chat prompts
-- Can be disabled if not needed
-
-Chat Plugin Integration ~
-
-- Deep integration with popular Neovim chat plugins:
-    - Avante.nvim: Full MCP tool support with auto-approval option
-    - CodeCompanion.nvim: MCP resources as chat variables and slash commands for prompts
-    - Real-time variable updates when servers change
-    - Automatic resource syncing and prompt registration
-    - Example: MCP resources as chat variables, prompts as slash_commands
-
-Marketplace Integration ~
-
-- Browse available MCP servers with details and stats
-- Sort, filter by category, and search servers
-- View server documentation and installation guides
-- One-click installation via Avante/CodeCompanion
-
-Interactive Testing ~
-
-- Real-time tool testing interface
-- Resource browsing and access
-- Built-in documentation and help
-
-Performance and Reliability ~
-
-- Full multi-instance support with synchronized state
-- Configuration file watching with real-time updates
-- Smart shutdown handling (configurable delay)
-- Parallel startup for improved performance
-- Automatic server lifecycle management
-
-Developer-friendly ~
-
-- Both sync and async operations supported
-- Clean client registration/cleanup
-- Comprehensive API for tool and resource access
+1. **Server Management**- When you start Neovim, our plugin launches the nodejs binary, mcp-hub <https://github.com/ravitemer/mcp-hub> (an Express server)
+- `mcp-hub` binary reads your servers config file and starts the MCP servers
+- It provides a REST API endpoint (default: `http://localhost:37373`) for interacting with servers
+- The plugin communicates with this endpoint to:
+    - Start/stop MCP servers
+    - Execute tools, resources, prompts etc
+    - Handle real-time server events
 
 
-📦 INSTALLATION                      *mcphub.nvim-mcp-hub-📦-installation*
+2. **Usage**- Use `:MCPHub` command to open the interface
+- Manage servers, tools, and resources
+- Browse and install servers from marketplace
+- Test tools and resources directly in Neovim
 
-Using lazy.nvim <https://github.com/folke/lazy.nvim>:
+
+3. **Chat Integration**- Works with popular chat plugins like Avante <https://github.com/yetone/avante.nvim>, CodeCompanion <https://github.com/olimorris/codecompanion.nvim>, CopilotChat <https://github.com/CopilotC-Nvim/CopilotChat.nvim>
+- LLMs can use MCP servers through our `@mcp` tool
+- Resources show up as `#variables` in chat
+- Prompts become `/slash_commands`
+
+
+
+
+NEXT STEPS                         *mcphub.nvim-welcome-to-mcp-hub-next-steps*
+
+- Installation Guide </installation> - Set up MCPHub in your Neovim
+- Configuration Guide </configuration> - Learn about configuring MCP Hub
+
+
+==============================================================================
+2. Installation                                     *mcphub.nvim-installation*
+
+Please read the getting started </index> guide before reading this.
+
+
+REQUIREMENTS                           *mcphub.nvim-installation-requirements*
+
+- Neovim >= 0.8.0
+- Node.js >= 18.0.0
+- plenary.nvim <https://github.com/nvim-lua/plenary.nvim>
+- mcp-hub <https://github.com/ravitemer/mcp-hub> (automatically installed via build command)
+
+
+LAZY.NVIM                                 *mcphub.nvim-installation-lazy.nvim*
+
+MCPHub.nvim requires mcp-hub <https://github.com/ravitemer/mcp-hub> to manage
+MCP Servers. You can make `mcp-hub` binary available in three ways:
+
+1. |mcphub.nvim-global-installation| (Recommended)
+2. |mcphub.nvim-local-installation|
+3. |mcphub.nvim-dev-installation|
+
+
+DEFAULT INSTALLATION ~
+
+Install `mcp-hub` node binary globally using `npm`, `yarn`, or `bun` any other
+node package manager using the `build` command. The `build` command will run
+everytime the plugin is updated.
 
 >lua
     {
         "ravitemer/mcphub.nvim",
         dependencies = {
-          "nvim-lua/plenary.nvim",  -- Required for Job and HTTP requests
+            "nvim-lua/plenary.nvim",
         },
-        -- uncomment the following line to load hub lazily
-        --cmd = "MCPHub",  -- lazy load 
-        build = "npm install -g mcp-hub@latest",  -- Installs required mcp-hub npm module
-        -- uncomment this if you don't want mcp-hub to be available globally or can't use -g
-        -- build = "bundled_build.lua",  -- Use this and set use_bundled_binary = true in opts  (see Advanced configuration)
+        build = "npm install -g mcp-hub@latest",  -- Installs `mcp-hub` node binary globally
         config = function()
-          require("mcphub").setup()
-        end,
+            require("mcphub").setup()
+        end
     }
 <
 
+Please see configuration </configuration> for default plugin config and on how
+to configure the plugin.
 
-ADVANCED CONFIGURATION ~
 
-Default Config ~
+LOCAL INSTALLATION ~
 
-All options are optional with sensible defaults. Here’s a complete example
-with all available options:
+Ideal for environments where global binary installations aren’t possible.
+
+Download `mcp-hub` binary alongside the neovim plugin using `bundled_build.lua`
+for the `build` command. We need to explicitly set `use_bundled_binary` to
+`true` to let the plugin use the locally available `mcp-hub` binary.
 
 >lua
-    require("mcphub").setup({
-        port = 37373, -- Default port for MCP Hub
-        config = vim.fn.expand("~/.config/mcphub/servers.json"), -- Absolute path to config file location (will create if not exists)
-        native_servers = {}, -- add your native servers here
-    
-        auto_approve = false, -- Auto approve mcp tool calls
-        auto_toggle_mcp_servers = true, -- Let LLMs start and stop MCP servers automatically
-        -- Extensions configuration
-        extensions = {
-            avante = {
-                make_slash_commands = true, -- make /slash commands from MCP server prompts
-            }
-        },
-    
-    
-        -- Default window settings
-        ui = {
-            window = {
-                width = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
-                height = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
-                relative = "editor",
-                zindex = 50,
-                border = "rounded", -- "none", "single", "double", "rounded", "solid", "shadow"
-            },
-            wo = { -- window-scoped options (vim.wo)
-            },
-        },
-    
-        -- Event callbacks
-        on_ready = function(hub)
-            -- Called when hub is ready
-        end,
-        on_error = function(err)
-            -- Called on errors
-        end,
-    
-        --set this to true when using build = "bundled_build.lua"
-        use_bundled_binary = false, -- Uses bundled mcp-hub script instead of global installation
-    
-        --WARN: Use the custom setup if you can't use `npm install -g mcp-hub` or cant have `build = "bundled_build.lua"`
-        -- Custom Server command configuration
-        --cmd = "node", -- The command to invoke the MCP Hub Server
-        --cmdArgs = {"/path/to/node_modules/mcp-hub/dist/cli.js"},    -- Additional arguments for the command
-        -- In cases where mcp-hub server is hosted somewhere, set this to the server URL e.g `http://mydomain.com:customport` or `https://url_without_need_for_port.com`
-        -- server_url = nil, -- defaults to `http://localhost:port`
-        -- Multi-instance Support
-        shutdown_delay = 600000, -- Delay in ms before shutting down the server when last instance closes (default: 10 minutes)
-    
-        -- Logging configuration
-        log = {
-            level = vim.log.levels.WARN,
-            to_file = false,
-            file_path = nil,
-            prefix = "MCPHub",
-        },
-    })
-<
-
-~/.config/mcphub/servers.json ~
-
-MCPHub uses a JSON configuration file to define MCP servers. The default
-location is `~/.config/mcphub/servers.json`.
-
-
-EXAMPLE CONFIGURATION
-
->js
     {
-      "mcpServers": {
-        "fetch": {
-          "command": "uvx",
-          "args": ["mcp-server-fetch", "$API_KEY"], //replaces $API_KEY with API_KEY from env field
-          "env": {
-            "API_KEY": "",                 // Falls back to process.env.API_KEY
-            "SERVER_URL": null,            // Falls back to process.env.SERVER_URL
-            "OP_KEY": "$: cmd:op read op://example/secret", // use $: at the beginning to indicate that this is a command
-            "AUTH_HEADER": "BEARER ${API_KEY}", // ${API_KEY} is replaced with resolved value of API_KEY in the env field falling back to process.env
-            "DEBUG": "true"               // Direct value, no fallback
-          }
+        "ravitemer/mcphub.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
         },
-        "remote-server": {
-          "url": "https://api.example.com/mcp", // Auto determine streamable-http or sse, Auto OAuth authorization
-          "headers": {                          // Explicit headers
-            "Authorization": "Bearer ${API_KEY}" // ${API_KEY} is replaced with process.env.API_KEY
-          }
-        }
-      }
+        build = "bundled_build.lua",  -- Bundles `mcp-hub` binary along with the neovim plugin
+        config = function()
+            require("mcphub").setup({
+                use_bundled_binary = true,  -- Use local `mcp-hub` binary
+            })
+        end,
     }
 <
 
-Configuration file (`~/.config/mcphub/servers.json`) is watched for changes and updates are applied automatically in real-time across all Neovim instances.
-MCP SERVERS CONFIG
 
-`mcphub.nvim` supports both `stdio` (local) MCP Servers as well as `sse`
-(remote) MCP Servers. The configuration for each type is as follows:
+DEV INSTALLATION ~
 
-- Local Stdio Servers:
-    - `command`: The command to start the MCP server (required)
-    - `args`: Command arguments as array (replaces args starting with `$` from env)
-    - `env`: Optional environment variables. Special values:
-        - `""` (empty string): Falls back to process.env.[VAR_NAME]
-        - `null`: Falls back to process.env.[VAR_NAME]
-        - `$:` values that start with `$:` are executed as shell commands e.g to use op cli `$: cmd:op read op://personal/secret`
-        - `${ENV_VAR}`: Replaces with the resolved value of ENV_VAR in the env field, falling back to process.env
-        - Any other value is used as-is
-- Remote Servers: (Supports `streamable-http`, `sse` with `OAuth`)
-    - `url`: url for remote MCP Server (required) (Auto determines streamable-http or sse transport, auto OAuth authorization)
-    - `headers`: Optional headers for the server (`${}` placeholder values are replaced with process.env)
-        - `${ENV_VAR}`: Replaces with process.env.ENV_VAR
-- There are other plugin specific options for each server like `disabled`, `disabled_tools`, `custom_instructions` etc which can be easily updated from the UI.
+Ideal for development. You can provide the command that our plugin should use
+to start the `mcp-hub` server. You can clone the `mcp-hub` repo locally using
+`gh clone ravitemer/mcp-hub` and provide the path to the `cli.js` as shown
+below:
+
+>lua
+    {
+        "ravitemer/mcphub.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+        },
+        config = function()
+            require("mcphub").setup({
+                cmd = "node",
+                cmdArgs = {"/path/to/mcp-hub/src/utils/cli.js"},
+            })
+        end,
+    }
+<
+
+See Contributing
+<https://github.com/ravitemer/mcphub.nvim/blob/main/CONTRIBUTING.md> guide for
+detailed development setup.
 
 
-NIX                                                  *mcphub.nvim-mcp-hub-nix*
+NIXOS                                         *mcphub.nvim-installation-nixos*
 
-Nixpkgs install ~
-
-
-  coming…
 Flake install ~
 
 Just add it to your NixOS flake.nix or home-manager:
 
 >nix
     inputs = {
-      mcphub-nvim.url = "github:ravitemer/mcphub.nvim";
-      ...
+    mcphub-nvim.url = "github:ravitemer/mcphub.nvim";
+    ...
     }
 <
 
@@ -417,88 +225,1979 @@ Nixvim <https://github.com/nix-community/nixvim> example:
 >nix
     { mcphub-nvim, ... }:
     {
-      extraPlugins = [mcphub-nvim];
-      extraConfigLua = ''
-        require("mcphub").setup()
-      '';
+    extraPlugins = [mcphub-nvim];
+    extraConfigLua = ''
+    require("mcphub").setup()
+    '';
     }
     
     # where
     {
-      # For nixpkgs (not available yet)
-      # ...
+    # For nixpkgs (not available yet)
+    # ...
     
-      # For flakes
-      mcphub-nvim = inputs.mcphub-nvim.packages."${system}".default;
+    # For flakes
+    mcphub-nvim = inputs.mcphub-nvim.packages."${system}".default;
+    }
+<
+
+Nixpkgs install ~
+
+
+  coming…
+
+==============================================================================
+3. Configuration                                   *mcphub.nvim-configuration*
+
+Please read the getting started </index> guide before reading this.
+
+
+DEFAULT CONFIGURATION        *mcphub.nvim-configuration-default-configuration*
+
+All options are optional with sensible defaults. See below for each option in
+detail.
+
+>lua
+    {
+        "ravitemer/mcphub.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+        },
+        build = "npm install -g mcp-hub@latest",  -- Installs `mcp-hub` node binary globally
+        config = function()
+            require("mcphub").setup({
+                --- `mcp-hub` binary related options-------------------
+                config = vim.fn.expand("~/.config/mcphub/servers.json"), -- Absolute path to MCP Servers config file (will create if not exists)
+                port = 37373, -- The port `mcp-hub` server listens to
+                shutdown_delay = 60 * 10 * 000, -- Delay in ms before shutting down the server when last instance closes (default: 10 minutes)
+                use_bundled_binary = false, -- Use local `mcp-hub` binary (set this to true when using build = "bundled_build.lua")
+    
+                ---Chat-plugin related options-----------------
+                auto_approve = false, -- Auto approve mcp tool calls
+                auto_toggle_mcp_servers = true, -- Let LLMs start and stop MCP servers automatically
+                extensions = {
+                    avante = {
+                        make_slash_commands = true, -- make /slash commands from MCP server prompts
+                    }
+                },
+    
+                --- Plugin specific options-------------------
+                native_servers = {}, -- add your custom lua native servers here
+                ui = {
+                    window = {
+                        width = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
+                        height = 0.8, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
+                        relative = "editor",
+                        zindex = 50,
+                        border = "rounded", -- "none", "single", "double", "rounded", "solid", "shadow"
+                    },
+                    wo = { -- window-scoped options (vim.wo)
+                        winhl = "Normal:MCPHubNormal,FloatBorder:MCPHubBorder",
+                    },
+                },
+                on_ready = function(hub)
+                    -- Called when hub is ready
+                end,
+                on_error = function(err)
+                    -- Called on errors
+                end,
+                log = {
+                    level = vim.log.levels.WARN,
+                    to_file = false,
+                    file_path = nil,
+                    prefix = "MCPHub",
+                },
+            })
+        end
     }
 <
 
 
-🚀 USAGE                                    *mcphub.nvim-mcp-hub-🚀-usage*
+BINARY MCP-HUB OPTIONS      *mcphub.nvim-configuration-binary-mcp-hub-options*
 
-Open the MCPHub UI to manage servers, test tools and monitor status:
+On calling `require("mcphub").setup()`, MCPHub.nvim starts the `mcp-hub`
+process with the given arguments. Internally the default command looks
+something like:
 
->vim
-    :MCPHub
+>bash
+    mcp-hub --config ~/.config/mcphub/servers.json --port 37373 --auto-shutdown --shutdown-delay 600000 --watch
 <
 
-For Chat plugin Devs: Use hub instance api in your code ~
+We can configure how the `mcp-hub` process starts and stops as follows:
+
+
+CONFIG ~
+
+Default: `~/.config/mcphub/servers.json`
+
+Absolute path to the MCP Servers configuration file. The plugin will create
+this file if it doesn’t exist. See servers.json </mcp/servers_json> page to
+see how `servers.json` should look like, how to safely add it to source control
+and more
+
+
+PORT ~
+
+Default: `37373`
+
+The port number that the `mcp-hub`’s express server should listen on.
+MCPHub.nvim sends curl requests to `http://localhost:37373/` endpoint to manage
+MCP servers. We first check if `mcp-hub` is already running before trying to
+start a new one.
+
+
+SERVER_URL ~
+
+Default: `nil`
+
+By default, we send curl requests to `http://localhost:37373/` to manage MCP
+servers. However, in cases where you want to run `mcp-hub` on another machine
+in your local network or remotely you can override the endpoint by setting this
+to the server URL e.g `http://mydomain.com:customport` or
+`https://url_without_need_for_port.com`
+
+
+SHUTDOWN_DELAY ~
+
+Default: `600000` (10 minutes)
+
+Time in milliseconds to wait before shutting down the `mcp-hub` server when the
+last Neovim instance closes. The `mcp-hub` server stays up for 10 minutes after
+exiting neovim. On entering, MCPHub.nvim checks for the running server and
+connects to it. This makes the MCP servers readily available. You can set it to
+a longer time to keep `mcp-hub` running.
+
+
+USE_BUNDLED_BINARY ~
+
+Default: `false`
+
+Uses local `mcp-hub` binary. Enable this when using `build =
+"bundled_build.lua"` in your plugin configuration.
+
+
+CMD, CMDARGS ~
+
+Default: `nil`
+
+Internally `cmd` points to the `mcp-hub` binary. e.g for global installations
+it is `mcp-hub`. When `use_bundled_binary` is `true` it is
+`~/.local/share/nvim/lazy/mcphub.nvim/bundled/mcp-hub/node_modules/mcp-hub/dist/cli.js`.
+You can set this to something else so that MCPHub.nvim uses `cmd` and `cmdArgs`
+to start the `mcp-hub` server. You can clone the `mcp-hub` repo locally using
+`gh clone ravitemer/mcp-hub` and provide the path to the `cli.js` as shown
+below:
 
 >lua
-    local hub = mcphub.get_hub_instance()
-    
-    -- Call a tool (sync)
-      local response, err = hub:call_tool("server-name", "tool-name", {
-          param1 = "value1"
-          }, {
-          return_text = true -- Parse response to LLM-suitable text
-          })
-    
-    -- Call a tool (async)
-      hub:call_tool("server-name", "tool-name", {
-          param1 = "value1"
-          }, {
-          return_text = true,
-          callback = function(response, err)
-          -- Use response
-          end
-          })
-    
-    -- Access resource (sync)
-      local response, err = hub:access_resource("server-name", "resource://uri", {
-          return_text = true
-          })
-    
-    -- Get prompt helpers for system prompts
-    local prompts = hub:generate_prompts()
-    -- prompts.active_servers: Lists currently active servers
-    -- prompts.use_mcp_tool: Instructions for tool usage with example
-    -- prompts.access_mcp_resource: Instructions for resource access with example
+    require("mcphub").setup({
+        cmd = "node",
+        cmdArgs = {"/path/to/mcp-hub/src/utils/cli.js"},
+    })
+<
+
+See Contributing
+<https://github.com/ravitemer/mcphub.nvim/blob/main/CONTRIBUTING.md> guide for
+detailed development setup.
+
+
+CHAT-PLUGIN RELATED OPTIONS*mcphub.nvim-configuration-chat-plugin-related-options*
+
+
+AUTO_APPROVE ~
+
+Default: `false`
+
+By default when the LLM calls a tool or resource on a MCP server, we show a
+confirmation window like below.
+
+Set it to to `true` to automatically approve MCP tool calls without user
+confirmation. This also sets `vim.g.mcphub_auto_approve` variable to `true`.
+You can toggle this option in the MCP Hub UI with `ga` keymap. You can see the
+current auto approval status in the Hub UI.
+
+
+AUTO_TOGGLE_MCP_SERVERS ~
+
+Default: `true`
+
+Allow LLMs to automatically start and stop MCP servers as needed. Disable to
+require manual server management. The following demo shows avante auto starting
+a disabled MCP server to acheive it’s objective. See discussion
+<https://github.com/ravitemer/mcphub.nvim/discussions/88> for details.
+
+
+EXTENSIONS ~
+
+Default:
+
+>lua
+    {
+        extensions = {
+            avante = {
+                enabled = true,
+                make_slash_commands = true
+            }
+        }
+    }
+<
+
+Avante <https://github.com/yetone/avante.nvim> integration options: -
+`make_slash_commands`: Convert MCP server prompts to slash commands in Avante
+chat - Please visit Avante </extensions/avante> for full integration
+documentation
+
+Also see CodeCompanion </extensions/codecompanion>, CopilotChat
+</extensions/copilotchat> pages for detailed setup guides.
+
+
+PLUGIN OPTIONS                      *mcphub.nvim-configuration-plugin-options*
+
+
+NATIVE_SERVERS ~
+
+Default: `{}`
+
+Define custom Lua native MCP servers that run directly in Neovim without
+external processes. Each server can provide tools, resources, and prompts.
+Please see native servers guide </mcp/native/index> to create MCP Servers in
+lua.
+
+
+UI ~
+
+Default:
+
+>lua
+    {
+        ui = {
+            window = {
+                width = 0.85, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
+                height = 0.85, -- 0-1 (ratio); "50%" (percentage); 50 (raw number)
+                border = "rounded", -- "none", "single", "double", "rounded", "solid", "shadow"
+                relative = "editor",
+                zindex = 50,
+            },
+            wo = { -- window-scoped options (vim.wo)
+                winhl = "Normal:MCPHubNormal,FloatBorder:MCPHubBorder",
+            },
+        },
+    }
+<
+
+Controls the appearance and behavior of the MCPHub UI window: - `width`: Window
+width (0-1 for ratio, "50%" for percentage, or raw number) - `height`: Window
+height (same format as width) - `relative`: Window placement relative to
+("editor", "win", or "cursor") - `zindex`: Window stacking order - `border`:
+Border style ("none", "single", "double", "rounded", "solid", "shadow")
+
+
+ON_READY ~
+
+Default: `function(hub) end`
+
+Callback function executed when the MCP Hub server is ready and connected.
+Receives the hub instance as an argument.
+
+
+ON_ERROR ~
+
+Default: `function(err) end`
+
+Callback function executed when an error occurs in the MCP Hub server. Receives
+the error message as an argument.
+
+
+LOG ~
+
+Default:
+
+>lua
+    {
+        level = vim.log.levels.WARN,
+        to_file = false,
+        file_path = nil,
+        prefix = "MCPHub"
+    }
+<
+
+Logging configuration options: - `level`: Log level (vim.log.levels.ERROR,
+WARN, INFO, DEBUG, TRACE) - `to_file`: Whether to write logs to file -
+`file_path`: Custom log file path - `prefix`: Prefix for log messages
+
+
+==============================================================================
+4. MCP Servers                                       *mcphub.nvim-mcp-servers*
+
+
+MCP CONFIG FILE                      *mcphub.nvim-mcp-servers-mcp-config-file*
+
+MCPHub.nvim like other MCP clients uses a JSON configuration file to manage MCP
+servers. This `config` file is located at `~/.config/mcphub/servers.json` by
+default and supports real-time updates across all Neovim instances. You can set
+`config` option to a custom location.
+
+
+  [!NOTE] You can use a single config file for any MCP client like VSCode,
+  Cursor, Cline, Zed etc as long as the config file follows the below structure.
+  With MCPHub.nvim, `config` file can be safely added to source control as it
+  allows some special placeholder values in the `env` and `headers` fields on MCP
+  Servers.
+
+MANAGE SERVERS ~
+
+Adding, editing, deleting and securing MCP servers in easy and intuitive with
+MCP Hub. You don’t need to edit the `servers.json` file directly. Everything
+can be done right from the UI.
+
+
+FROM MARKETPLACE
+
+
+BROWSE, SORT, FILTER , SEARCH FROM AVAILABLE MCP SERVERS.
+
+
+ONE CLICK AI INSTALL WITH AVANTE AND CODECOMPANION
+
+
+OR SIMPLE COPY PASTE MCPSERVERS JSON BLOCK IN THE README
+
+
+
+
+FROM HUB VIEW
+
+Add (`<A>`), edit (`<e>`), delete (`<d>`) MCP servers from the (`H`) Hub view.
+
+
+BASIC SCHEMA ~
+
+The `config` file should have a `mcpServers` key. This contains `stdio` and
+`remote` MCP servers. There is also another top level MCPHub specific field
+`nativeMCPServers` to store any disabled tools, custom instructions etc that
+the plugin updates internally. See Lua MCP Servers </mcp/native/index> for more
+about Lua native MCP servers
+
+>json
+    {
+        "mcpServers": {
+            // Add stdio and remote MCP servers here
+        },
+        "nativeMCPServers": { // MCPHub specific
+            // To store disabled tools, custom instructions etc
+        }
+    }
 <
 
 
-🔌 EXTENSIONS                          *mcphub.nvim-mcp-hub-🔌-extensions*
-
-MCPHub.nvim provides extensions that integrate with popular Neovim chat
-plugins. These extensions allow you to use MCP tools and resources directly
-within your chat interfaces.
+SERVER TYPES ~
 
 
-AVANTE.NVIM ~
+LOCAL (STDIO) SERVERS
 
- ~
+>json
+    {
+        "mcpServers": {
+            "local-server": {
+                "command": "uvx",
+                "args": ["mcp-server-fetch"]
+            }
+        }
+    }
+<
 
-Add MCP capabilities to Avante by including the MCP tools in your setup:
+
+REQUIRED FIELDS:
+
+- `command`: The executable to start the server
 
 
-  Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to
-  automatically approve mcp tool requests.
+OPTIONAL FIELDS:
 
-  Set `config.extensions.avante.make_slash_commands = true` to enable prompts as
-  slash commands (enabled by default). Server prompts will be available as
-  `/mcp:server_name:prompt_name` in chat.
-The `mcp_tool()` function now returns two separate tools (`use_mcp_tool` and
-`access_mcp_resource`) for better schema generation:
+- `args`: Array of command arguments
+- `env`: Optional environment variables
+
+
+ENV SPECIAL VALUES
+
+The `env` field supports several special values. Given `API_KEY=secret` in the
+environment:
+
+  --------------------------------------------------------------------------------------------------------
+  Example                                        Becomes                   Description
+  ---------------------------------------------- ------------------------- -------------------------------
+  "API_KEY": ""                                  "API_KEY": "secret"       Empty string falls back to
+                                                                           process.env.API_KEY
+
+  "API_KEY": null                                "SERVER_URL": "secret"    null falls back to
+                                                                           process.env.API_KEY
+
+  "AUTH": "Bearer ${API_KEY}"                    "AUTH": "Bearer secret"   ${} Placeholder values are also
+                                                                           replaced
+
+  "TOKEN": "$: cmd:op read op://example/token"   "TOKEN": "secret"         Values starting with $: will be
+                                                                           executed as shell command
+
+  "HOME": "/home/ubuntu"                         "HOME": "/home/ubuntu"    Used as-is
+  --------------------------------------------------------------------------------------------------------
+
+REMOTE SERVERS
+
+MCPHub supports both `streamable-http` and `sse` remote servers.
+
+>json
+    {
+        "mcpServers": {
+            "remote-server": {
+                "url": "https://api.example.com/mcp",
+                "headers": {
+                    "Authorization": "Bearer ${API_KEY}"
+                }
+            }
+        }
+    }
+<
+
+
+REQUIRED FIELDS:
+
+- `url`: Remote server endpoint
+
+
+OPTIONAL FIELDS:
+
+- `headers`: Optional authentication headers
+
+
+HEADERS SPECIAL VALUES
+
+The `headers` field supports `${...}` Placeholder values. Given
+`API_KEY=secret` in the environment:
+
+  ---------------------------------------------------------------------------------------------
+  Example                                Becomes                         Description
+  -------------------------------------- ------------------------------- ----------------------
+  "Authorization": "Bearer ${API_KEY}"   "AUTH": "Bearer secret"         ${} Placeholder values
+                                                                         are replaced
+
+  ---------------------------------------------------------------------------------------------
+
+MCPHUB SPECIFIC FIELDS ~
+
+MCPHub adds several extra keys for each server automatically from the UI:
+
+>json
+    {
+        "mcpServers": {
+            "example": {
+                "disabled": false,
+                "disabled_tools": ["expensive-tool"],
+                "disabled_resources": ["resource://large-data"],
+                "disabled_resourceTemplates": ["resource://{type}/{id}"],
+                "custom_instructions": {
+                    "disabled": false,
+                    "text": "Custom instructions for this server"
+                }
+            }
+        }
+    }
+<
+
+
+LUA MCP SERVERS                      *mcphub.nvim-mcp-servers-lua-mcp-servers*
+
+
+WHY NATIVE MCP SERVERS? ~
+
+MCPHub.nvim allows you to create MCP servers directly in Lua without any
+external processes. This guide explains why you might want to use native MCP
+servers and how they compare to other approaches.
+
+
+THE PROBLEM WITH PLUGIN-SPECIFIC TOOLS
+
+Many chat plugins like Avante and CodeCompanion provide their own tool systems:
+
+>lua
+    -- Avante custom tools
+    require("avante").setup({
+        custom_tools = {
+            get_weather = {
+                name = "get_weather",
+                description = "Get weather info",
+                schema = { ... },
+                func = function() end
+            }
+        }
+    })
+    
+    -- CodeCompanion tools
+    require("codecompanion").setup({
+        chat = {
+            tools = {
+                get_weather = {
+                    name = "get_weather",
+                    description = "Get weather info",
+                    schema = { ... },
+                    handler = function() end
+                }
+            }
+        }
+    })
+<
+
+This leads to several limitations:
+
+  ---------------------------------------------------------------------------
+  Feature          Plugin-Specific Tools          Native MCP Servers
+  ---------------- ------------------------------ ---------------------------
+  Implementation   Need to rewrite for each       Write once, use everywhere
+                   plugin                         
+
+  API              Different for each plugin      Standard MCP protocol
+
+  Instructions     Limited by schema              Full system prompt
+
+  Resources        No standard way                URI-based system
+
+  Response Types   Usually just text              Text, images, blobs
+
+  State            Per-plugin management          Centralized lifecycle
+
+  Updates          May break tools                Plugin-independent
+  ---------------------------------------------------------------------------
+
+BENEFITS OF NATIVE MCP SERVERS
+
+
+1. WRITE ONCE, USE EVERYWHERE
+
+>lua
+    -- Write once, works in any chat plugin
+    mcphub.add_tool("weather", {
+        name = "get_weather",
+        description = "Get weather info",
+        handler = function(req, res)
+            return res:text("Current weather: ☀️"):send()
+        end
+    })
+<
+
+
+2. RICH RESPONSE TYPES
+
+>lua
+    -- Support multiple response types
+    function handler(req, res)
+        return res
+            :text("Here's the weather:")
+            :image(generate_chart(), "image/png")
+            :text("Additional details...")
+            :send()
+    end
+<
+
+
+3. RESOURCE SYSTEM
+
+Access data through clean URIs:
+
+>lua
+    mcphub.add_resource_template("weather", {
+        uriTemplate = "weather://{city}",
+        handler = function(req, res)
+            local city = req.params.city
+            return res:text(city .. ": ☀️"):send()
+        end
+    })
+<
+
+
+4. DEEP EDITOR INTEGRATION
+
+Direct access to Neovim’s features:
+
+>lua
+    mcphub.add_tool("buffer", {
+        name = "analyze",
+        handler = function(req, res)
+            -- Access current editor state
+            local buf = req.editor_info.last_active
+            -- Use LSP features
+            local diagnostics = vim.diagnostic.get(buf.bufnr)
+            -- Format response
+            return res:text("Analysis complete"):send()
+        end
+    })
+<
+
+
+5. PLUGIN-AWARE CONTEXT
+
+Adapt to different chat plugins:
+
+>lua
+    mcphub.add_tool("context", {
+        name = "analyze",
+        handler = function(req, res)
+            if req.caller.type == "codecompanion" then
+                -- Handle CodeCompanion context
+                local chat = req.caller.codecompanion.chat
+                return handle_codecompanion(chat)
+            elseif req.caller.type == "avante" then
+                -- Handle Avante context
+                local code = req.caller.avante.code
+                return handle_avante(code)
+            end
+        end
+    })
+<
+
+
+6. STANDARD PROTOCOL
+
+Following the MCP specification ensures: - Consistent behavior across plugins -
+Future compatibility - Clear documentation - Standard error handling
+
+
+REAL-WORLD EXAMPLE
+
+Here’s a real example from MCPHub’s built-in Neovim server that
+demonstrates these benefits:
+
+>lua
+    -- LSP diagnostics as a resource
+    mcphub.add_resource("neovim", {
+        name = "Diagnostics: Current File",
+        description = "Get diagnostics for current file",
+        uri = "neovim://diagnostics/current",
+        mimeType = "text/plain",
+        handler = function(req, res)
+            -- Get editor context
+            local buf_info = req.editor_info.last_active
+            if not buf_info then
+                return res:error("No active buffer")
+            end
+    
+            -- Use LSP features
+            local diagnostics = vim.diagnostic.get(buf_info.bufnr)
+            
+            -- Format response
+            local text = string.format(
+                "Diagnostics for: %s\n%s\n",
+                buf_info.filename,
+                string.rep("-", 40)
+            )
+            
+            for _, diag in ipairs(diagnostics) do
+                local severity = vim.diagnostic.severity[diag.severity]
+                text = text .. string.format(
+                    "\n%s: Line %d - %s\n",
+                    severity,
+                    diag.lnum + 1,
+                    diag.message
+                )
+            end
+    
+            return res:text(text):send()
+        end
+    })
+<
+
+This example shows how native servers can: 1. Access Neovim APIs directly 2.
+Use built-in features like LSP 3. Format responses clearly 4. Handle errors
+properly 5. Work across all chat plugins
+
+The next sections will show you how to create your own native MCP servers,
+starting with registration methods.
+
+
+REGISTRATION METHODS ~
+
+There are two ways to register native MCP servers in MCPHub. But first, let’s
+understand the core types involved.
+
+
+CORE TYPES
+
+
+SERVER DEFINITION
+
+>lua
+    ---@class NativeServerDef
+    ---@field name? string Name of the server
+    ---@field displayName? string Display name of the server
+    ---@field capabilities? MCPCapabilities List of server capabilities
+    
+    ---@class MCPCapabilities
+    ---@field tools? MCPTool[] List of tools
+    ---@field resources? MCPResource[] List of resources
+    ---@field resourceTemplates? MCPResourceTemplate[] List of templates
+    ---@field prompts? MCPPrompt[] List of prompts
+<
+
+
+REGISTRATION METHODS
+
+
+1. CONFIGURATION-BASED (SETUP)
+
+Register your complete server through MCPHub’s setup:
+
+>lua
+    require("mcphub").setup({
+        native_servers = {
+            -- Define your server
+            example = {
+                -- Required: Server name
+                name = "example",
+                
+                -- Optional: Display name
+                displayName = "Example Server",
+                
+                -- Required: Server capabilities
+                capabilities = {
+                    tools = { ... },
+                    resources = { ... },
+                    resourceTemplates = { ... },
+                    prompts = { ... }
+                }
+            }
+        }
+    })
+<
+
+
+2. API-BASED (DYNAMIC)
+
+Add capabilities incrementally using the API:
+
+>lua
+    local mcphub = require("mcphub")
+    
+    -- Create or get a server
+    mcphub.add_server("example", {
+        displayName = "Example Server"
+    })
+    
+    -- Or automatically create server when adding capabilities
+    mcphub.add_tool("example", {...})      -- Creates server if needed
+    mcphub.add_resource("example", {...})  -- Creates server if needed
+<
+
+
+ADD_SERVER
+
+>lua
+    ---@param server_name string Name of the server
+    ---@param def? NativeServerDef Optional server definition
+    ---@return NativeServer|nil server Server instance or nil on error
+    mcphub.add_server("example", {
+        name = "example",
+        displayName = "Example Server",
+        capabilities = { ... }
+    })
+<
+
+
+ADD_TOOL
+
+>lua
+    ---@param server_name string Name of the server
+    ---@param tool_def MCPTool Tool definition
+    ---@return NativeServer|nil server Server instance or nil on error
+    mcphub.add_tool("example", {
+        -- Required: Tool name
+        name = "greeting",
+        
+        -- Optional: Description (string or function)
+        description = "Greet a user",
+        
+        -- Optional: Input validation schema
+        inputSchema = {
+            type = "object",
+            properties = {
+                name = {
+                    type = "string",
+                    description = "Name to greet"
+                }
+            }
+        },
+        
+        -- Required: Tool implementation
+        ---@param req ToolRequest Request context
+        ---@param res ToolResponse Response builder
+        handler = function(req, res)
+            return res:text("Hello " .. req.params.name):send()
+        end
+    })
+<
+
+
+ADD_RESOURCE
+
+>lua
+    ---@param server_name string Name of the server
+    ---@param resource_def MCPResource Resource definition
+    ---@return NativeServer|nil server Server instance or nil on error
+    mcphub.add_resource("example", {
+        -- Optional: Resource name
+        name = "Welcome",
+        
+        -- Required: Static URI
+        uri = "example://welcome",
+        
+        -- Optional: Description
+        description = "Welcome message",
+        
+        -- Optional: MIME type
+        mimeType = "text/plain",
+        
+        -- Required: Resource handler
+        ---@param req ResourceRequest Request context
+        ---@param res ResourceResponse Response builder
+        handler = function(req, res)
+            return res:text("Welcome!"):send()
+        end
+    })
+<
+
+
+ADD_RESOURCE_TEMPLATE
+
+>lua
+    ---@param server_name string Name of the server
+    ---@param template_def MCPResourceTemplate Template definition
+    ---@return NativeServer|nil server Server instance or nil on error
+    mcphub.add_resource_template("example", {
+        -- Optional: Template name
+        name = "UserInfo",
+        
+        -- Required: URI template with parameters
+        uriTemplate = "example://user/{id}",
+        
+        -- Optional: Description
+        description = "Get user information",
+        
+        -- Optional: Default MIME type
+        mimeType = "text/plain",
+        
+        -- Required: Template handler
+        ---@param req ResourceRequest Request with params
+        ---@param res ResourceResponse Response builder
+        handler = function(req, res)
+            -- Access template parameters
+            local id = req.params.id
+            return res:text("User " .. id):send()
+        end
+    })
+<
+
+
+ADD_PROMPT
+
+>lua
+    ---@param server_name string Name of the server
+    ---@param prompt_def MCPPrompt Prompt definition
+    ---@return NativeServer|nil server Server instance or nil on error
+    mcphub.add_prompt("example", {
+        -- Optional: Prompt name
+        name = "chat",
+        
+        -- Optional: Description
+        description = "Start a chat",
+        
+        -- Optional: Prompt arguments
+        arguments = {
+            {
+                name = "topic",
+                description = "Chat topic",
+                required = true
+            }
+        },
+        
+        -- Required: Prompt handler
+        ---@param req PromptRequest Request with arguments
+        ---@param res PromptResponse Response builder
+        handler = function(req, res)
+            return res
+                :system()
+                :text("Chat about: " .. req.params.topic)
+                :user()
+                :text("Tell me about " .. req.params.topic)
+                :llm()
+                :text("I'd be happy to discuss " .. req.params.topic)
+                :send()
+        end
+    })
+<
+
+
+NEXT STEPS
+
+Now that you understand server registration, dive into: 1. Adding Tools
+<./tools> - Implement tool capabilities 2. Adding Resources <./resources> -
+Create resources and templates 3. Adding Prompts <./prompts> - Create
+interactive prompts
+
+Each capability type has its own request/response types and patterns for
+success.
+
+
+ADDING TOOLS ~
+
+Tools are functions that LLMs can call with specific parameters. This guide
+covers how to implement tools with proper typing and best practices.
+
+
+TOOL DEFINITION
+
+>lua
+    ---@class MCPTool
+    ---@field name string Required: Tool identifier
+    ---@field description string|fun():string Optional: Tool description
+    ---@field inputSchema? table|fun():table Optional: JSON Schema for validation
+    ---@field handler fun(req: ToolRequest, res: ToolResponse): nil|table Required: Implementation
+<
+
+
+REQUEST CONTEXT
+
+Tool handlers receive a request object with:
+
+>lua
+    ---@class ToolRequest
+    ---@field params table Tool arguments (validated against inputSchema)
+    ---@field tool MCPTool Complete tool definition
+    ---@field server NativeServer Server instance
+    ---@field caller table Additional context from caller
+    ---@field editor_info EditorInfo Current editor state
+<
+
+
+RESPONSE BUILDER
+
+Tool handlers use a chainable response builder:
+
+>lua
+    ---@class ToolResponse
+    ---@field text fun(text: string): ToolResponse Add text content
+    ---@field image fun(data: string, mime: string): ToolResponse Add image
+    ---@field audio fun(data: string, mime: string): ToolResponse Add audio
+    ---@field resource fun(resource: MCPResourceContent): ToolResponse Add resource
+    ---@field error fun(message: string, details?: table): table Send error
+    ---@field send fun(result?: table): table Send final response
+<
+
+
+EXAMPLES
+
+
+BASIC EXAMPLE
+
+Here’s a simple greeting tool:
+
+>lua
+    mcphub.add_tool("example", {
+        name = "greet",
+        description = "Greet a user",
+        inputSchema = {
+            type = "object",
+            properties = {
+                name = {
+                    type = "string",
+                    description = "Name to greet"
+                }
+            },
+            required = { "name" }
+        },
+        handler = function(req, res)
+            return res:text("Hello " .. req.params.name):send()
+        end
+    })
+<
+
+
+REAL EXAMPLE: FILE READING
+
+Here’s how the built-in Neovim server implements file reading:
+
+>lua
+    mcphub.add_tool("neovim", {
+        name = "read_file",
+        description = "Read contents of a file",
+        inputSchema = {
+            type = "object",
+            properties = {
+                path = {
+                    type = "string",
+                    description = "Path to the file to read",
+                },
+                start_line = {
+                    type = "number",
+                    description = "Start reading from this line (1-based)",
+                    default = 1
+                },
+                end_line = {
+                    type = "number",
+                    description = "Read until this line (inclusive)",
+                    default = -1
+                }
+            },
+            required = { "path" }
+        },
+        handler = function(req, res)
+            local params = req.params
+            local p = Path:new(params.path)
+            
+            -- Validate file exists
+            if not p:exists() then
+                return res:error("File not found: " .. params.path)
+            end
+    
+            -- Handle line range reading
+            if params.start_line and params.end_line then
+                local extracted = {}
+                local current_line = 0
+                
+                for line in p:iter() do
+                    current_line = current_line + 1
+                    if current_line >= params.start_line 
+                    and (params.end_line == -1 or current_line <= params.end_line) then
+                        table.insert(extracted, 
+                            string.format("%4d │ %s", current_line, line))
+                    end
+                    if params.end_line ~= -1 and current_line > params.end_line then
+                        break
+                    end
+                end
+                return res:text(table.concat(extracted, "\n")):send()
+            end
+    
+            -- Read entire file
+            return res:text(p:read()):send()
+        end
+    })
+<
+
+
+ADVANCED FEATURES
+
+
+DYNAMIC DESCRIPTIONS
+
+Descriptions can be functions for dynamic content:
+
+>lua
+    mcphub.add_tool("files", {
+        name = "search",
+        description = function()
+            local count = #vim.api.nvim_list_bufs()
+            return string.format("Search %d open buffers", count)
+        end,
+        handler = function(req, res)
+            -- Implementation
+        end
+    })
+<
+
+
+DYNAMIC SCHEMAS
+
+Input schemas can also be dynamic:
+
+>lua
+    mcphub.add_tool("buffer", {
+        name = "edit",
+        inputSchema = function()
+            -- Get open buffers
+            local bufs = vim.api.nvim_list_bufs()
+            local options = {}
+            for _, bufnr in ipairs(bufs) do
+                if vim.api.nvim_buf_is_loaded(bufnr) then
+                    table.insert(options, tostring(bufnr))
+                end
+            end
+            
+            return {
+                type = "object",
+                properties = {
+                    buffer = {
+                        type = "string",
+                        enum = options,
+                        description = "Buffer to edit"
+                    }
+                }
+            }
+        end,
+        handler = function(req, res)
+            -- Implementation
+        end
+    })
+<
+
+
+RICH RESPONSES
+
+Tools can return multiple content types:
+
+>lua
+    mcphub.add_tool("diagram", {
+        name = "generate",
+        handler = function(req, res)
+            -- Generate diagram image
+            local image_data = generate_diagram(req.params)
+            
+            -- Return both text and image
+            return res
+                :text("Generated diagram:")
+                :image(image_data, "image/png")
+                :text("Diagram shows relationship between A and B")
+                :send()
+        end
+    })
+<
+
+
+ERROR HANDLING
+
+Use proper error handling with details:
+
+>lua
+    mcphub.add_tool("git", {
+        name = "commit",
+        handler = function(req, res)
+            -- Check git repository
+            if not is_git_repo() then
+                return res:error("Not a git repository", {
+                    cwd = vim.fn.getcwd(),
+                    suggestion = "Initialize git with 'git init'"
+                })
+            end
+            
+            -- Check for changes
+            if git_is_clean() then
+                return res:error("No changes to commit", {
+                    status = vim.fn.system("git status"),
+                    suggestion = "Make changes before committing"
+                })
+            end
+            
+            -- Implementation
+        end
+    })
+<
+
+
+USING EDITOR CONTEXT
+
+Access current editor state:
+
+>lua
+    mcphub.add_tool("buffer", {
+        name = "analyze",
+        handler = function(req, res)
+            -- Get active buffer info
+            local buf = req.editor_info.last_active
+            if not buf then
+                return res:error("No active buffer")
+            end
+            
+            -- Get buffer details
+            local details = {
+                name = buf.filename,
+                type = buf.filetype,
+                lines = buf.line_count,
+                modified = buf.is_modified
+            }
+            
+            -- Format response
+            return res:text(vim.inspect(details)):send()
+        end
+    })
+<
+
+
+CALLER-AWARE TOOLS
+
+Adapt behavior based on caller:
+
+>lua
+    mcphub.add_tool("context", {
+        name = "get_code",
+        handler = function(req, res)
+            if req.caller.type == "codecompanion" then
+                -- Get context from CodeCompanion chat
+                local chat = req.caller.codecompanion.chat
+                return handle_codecompanion(chat, res)
+            
+            elseif req.caller.type == "avante" then
+                -- Get context from Avante
+                local code = req.caller.avante.code
+                return handle_avante(code, res)
+                
+            else
+                -- Default behavior
+                return res:text("No special context"):send()
+            end
+        end
+    })
+<
+
+Next, learn about Adding Resources <./resources> to provide data through URIs.
+
+
+ADDING RESOURCES ~
+
+Resources provide data through URIs in two ways: 1. Static Resources - Fixed
+URIs 2. Resource Templates - Dynamic URIs with parameters
+
+
+TYPE DEFINITIONS
+
+
+STATIC RESOURCES
+
+>lua
+    ---@class MCPResource
+    ---@field name? string Resource identifier
+    ---@field description? string|fun():string Resource description
+    ---@field mimeType? string Resource MIME type (e.g., "text/plain")
+    ---@field uri string Static URI (e.g., "system://info")
+    ---@field handler fun(req: ResourceRequest, res: ResourceResponse) Implementation
+<
+
+
+RESOURCE TEMPLATES
+
+>lua
+    ---@class MCPResourceTemplate
+    ---@field name? string Template identifier
+    ---@field description? string|fun():string Template description
+    ---@field mimeType? string Default MIME type
+    ---@field uriTemplate string URI with parameters (e.g., "buffer://{bufnr}/lines")
+    ---@field handler fun(req: ResourceRequest, res: ResourceResponse) Implementation
+<
+
+
+REQUEST CONTEXT
+
+Resource handlers receive:
+
+>lua
+    ---@class ResourceRequest
+    ---@field params table<string,string> Template parameters from URI
+    ---@field uri string Complete requested URI
+    ---@field uriTemplate string|nil Original template if from template
+    ---@field resource MCPResource|MCPResourceTemplate Complete definition
+    ---@field server NativeServer Server instance
+    ---@field caller table Additional context from caller
+    ---@field editor_info EditorInfo Current editor state
+<
+
+
+RESPONSE BUILDER
+
+Resource handlers use:
+
+>lua
+    ---@class ResourceResponse
+    ---@field text fun(text: string, mime?: string): ResourceResponse Add text
+    ---@field blob fun(data: string, mime?: string): ResourceResponse Add binary
+    ---@field image fun(data: string, mime?: string): ResourceResponse Add image
+    ---@field audio fun(data: string, mime?: string): ResourceResponse Add audio
+    ---@field error fun(message: string, details?: table): table Send error
+    ---@field send fun(result?: table): table Send final response
+<
+
+
+EXAMPLES
+
+
+BASIC EXAMPLES
+
+
+STATIC RESOURCE
+
+>lua
+    mcphub.add_resource("system", {
+        name = "System Info",
+        description = "Get system information",
+        uri = "system://info",
+        mimeType = "text/plain",
+        handler = function(req, res)
+            local info = {
+                os = vim.loop.os_uname(),
+                pid = vim.fn.getpid(),
+                vimdir = vim.fn.stdpath("config")
+            }
+            return res:text(vim.inspect(info)):send()
+        end
+    })
+<
+
+
+RESOURCE TEMPLATE
+
+>lua
+    mcphub.add_resource_template("files", {
+        name = "File Lines",
+        description = "Get specific lines from a file",
+        uriTemplate = "files://{path}/{start}-{end}",
+        handler = function(req, res)
+            -- Get parameters
+            local path = req.params.path
+            local start_line = tonumber(req.params.start)
+            local end_line = tonumber(req.params.end)
+            
+            -- Validate file
+            if not vim.loop.fs_stat(path) then
+                return res:error("File not found: " .. path)
+            end
+            
+            -- Read lines
+            local lines = {}
+            local current = 0
+            for line in io.lines(path) do
+                current = current + 1
+                if current >= start_line then
+                    table.insert(lines, string.format(
+                        "%4d │ %s", current, line
+                    ))
+                end
+                if current >= end_line then
+                    break
+                end
+            end
+            
+            return res:text(table.concat(lines, "\n")):send()
+        end
+    })
+<
+
+
+REAL EXAMPLES FROM NEOVIM SERVER
+
+
+LSP DIAGNOSTICS RESOURCE
+
+>lua
+    mcphub.add_resource("neovim", {
+        name = "Diagnostics: Current File",
+        description = "Get diagnostics for the current file",
+        uri = "neovim://diagnostics/current",
+        mimeType = "text/plain",
+        handler = function(req, res)
+            -- Get active buffer
+            local buf_info = req.editor_info.last_active
+            if not buf_info then
+                return res:error("No active buffer")
+            end
+    
+            -- Get diagnostics
+            local diagnostics = vim.diagnostic.get(buf_info.bufnr)
+            
+            -- Format header
+            local text = string.format(
+                "Diagnostics for: %s\n%s\n",
+                buf_info.filename,
+                string.rep("-", 40)
+            )
+            
+            -- Format diagnostics
+            for _, diag in ipairs(diagnostics) do
+                local severity = vim.diagnostic.severity[diag.severity]
+                text = text .. string.format(
+                    "\n%s: %s\nLine %d: %s\n",
+                    severity,
+                    diag.source or "unknown",
+                    diag.lnum + 1,
+                    diag.message
+                )
+            end
+    
+            return res:text(text):send()
+        end
+    })
+<
+
+
+BUFFER LINES TEMPLATE
+
+>lua
+    mcphub.add_resource_template("neovim", {
+        name = "Buffer Lines",
+        description = "Get specific lines from a buffer",
+        uriTemplate = "neovim://buffer/{bufnr}/lines/{start}-{end}",
+        handler = function(req, res)
+            -- Get parameters
+            local bufnr = tonumber(req.params.bufnr)
+            local start_line = tonumber(req.params.start)
+            local end_line = tonumber(req.params.end)
+            
+            -- Validate buffer
+            if not vim.api.nvim_buf_is_valid(bufnr) then
+                return res:error("Invalid buffer: " .. req.params.bufnr)
+            end
+            
+            -- Get lines
+            local lines = vim.api.nvim_buf_get_lines(
+                bufnr,
+                start_line - 1,  -- 0-based index
+                end_line,       -- Exclusive end
+                false          -- Strict indexing
+            )
+            
+            -- Format with line numbers
+            local result = {}
+            for i, line in ipairs(lines) do
+                table.insert(result, string.format(
+                    "%4d │ %s",
+                    start_line + i - 1,
+                    line
+                ))
+            end
+            
+            return res:text(table.concat(result, "\n")):send()
+        end
+    })
+<
+
+
+ADVANCED FEATURES
+
+
+DYNAMIC MIME TYPES
+
+Change MIME type based on content:
+
+>lua
+    mcphub.add_resource_template("files", {
+        name = "File Content",
+        uriTemplate = "files://{path}",
+        handler = function(req, res)
+            local path = req.params.path
+            local ext = vim.fn.fnamemodify(path, ":e")
+            
+            -- Get MIME type based on extension
+            local mime_types = {
+                json = "application/json",
+                yaml = "application/yaml",
+                md = "text/markdown",
+                txt = "text/plain"
+            }
+            
+            local mime = mime_types[ext] or "text/plain"
+            return res:text(vim.fn.readfile(path), mime):send()
+        end
+    })
+<
+
+
+BINARY DATA
+
+Handle binary files:
+
+>lua
+    mcphub.add_resource_template("files", {
+        name = "File Download",
+        uriTemplate = "files://download/{path}",
+        handler = function(req, res)
+            local path = req.params.path
+            local ext = vim.fn.fnamemodify(path, ":e")
+            
+            -- Binary file types
+            local binary_types = {
+                png = "image/png",
+                jpg = "image/jpeg",
+                pdf = "application/pdf"
+            }
+            
+            if binary_types[ext] then
+                -- Read as binary
+                local data = vim.fn.readfile(path, "b")
+                return res:blob(data, binary_types[ext]):send()
+            else
+                -- Read as text
+                return res:text(vim.fn.readfile(path)):send()
+            end
+        end
+    })
+<
+
+
+RESOURCE VALIDATION
+
+URI parameter validation:
+
+>lua
+    mcphub.add_resource_template("git", {
+        name = "Commit Info",
+        uriTemplate = "git://commit/{hash}",
+        handler = function(req, res)
+            local hash = req.params.hash
+            
+            -- Validate hash format
+            if not hash:match("^[0-9a-f]+$") then
+                return res:error("Invalid commit hash", {
+                    hash = hash,
+                    expected = "hexadecimal string"
+                })
+            end
+            
+            -- Validate hash exists
+            local exists = vim.fn.system(
+                "git rev-parse --quiet --verify " .. hash
+            )
+            if vim.v.shell_error ~= 0 then
+                return res:error("Commit not found", {
+                    hash = hash,
+                    suggestion = "Use 'git log' to list commits"
+                })
+            end
+            
+            -- Get commit info
+            local info = vim.fn.system(
+                "git show --no-patch --format='%h %s' " .. hash
+            )
+            return res:text(info):send()
+        end
+    })
+<
+
+Next, learn about Adding Prompts <./prompts> to create interactive
+conversations.
+
+
+ADDING PROMPTS ~
+
+Prompts create interactive conversations with role-based messaging. They help
+guide LLMs through specific tasks by setting up context and examples.
+
+
+PROMPT DEFINITION
+
+>lua
+    ---@class MCPPrompt
+    ---@field name? string Prompt identifier
+    ---@field description? string|fun():string Prompt description
+    ---@field arguments? MCPPromptArgument[]|fun():MCPPromptArgument[] List of arguments
+    ---@field handler fun(req: PromptRequest, res: PromptResponse) Implementation
+    
+    ---@class MCPPromptArgument
+    ---@field name string Argument name
+    ---@field description? string Argument description
+    ---@field required? boolean Whether argument is required
+    ---@field default? string Default value
+<
+
+
+REQUEST CONTEXT
+
+>lua
+    ---@class PromptRequest
+    ---@field params table<string,string> Argument values
+    ---@field prompt MCPPrompt Complete prompt definition
+    ---@field server NativeServer Server instance
+    ---@field caller table Additional context from caller
+    ---@field editor_info EditorInfo Current editor state
+<
+
+
+RESPONSE BUILDER
+
+>lua
+    ---@class PromptResponse
+    ---@field system fun(): PromptResponse Start system message
+    ---@field user fun(): PromptResponse Start user message
+    ---@field llm fun(): PromptResponse Start LLM message
+    ---@field text fun(text: string): PromptResponse Add text content
+    ---@field image fun(data: string, mime: string): PromptResponse Add image
+    ---@field resource fun(resource: MCPResourceContent): PromptResponse Add resource
+    ---@field error fun(message: string, details?: table): table Send error
+    ---@field send fun(result?: table): table Send final response
+<
+
+
+EXAMPLES
+
+
+BASIC EXAMPLE
+
+Here’s a simple chat prompt:
+
+>lua
+    mcphub.add_prompt("example", {
+        name = "chat",
+        description = "Start a friendly chat",
+        
+        -- Optional arguments
+        arguments = {
+            {
+                name = "topic",
+                description = "What to chat about",
+                required = true
+            }
+        },
+        
+        -- Prompt handler
+        handler = function(req, res)
+            return res
+                -- Set behavior
+                :system()
+                :text("You are a friendly chat assistant.\n" ..
+                      "Topic: " .. req.params.topic)
+                
+                -- Add example interaction
+                :user()
+                :text("Tell me about " .. req.params.topic)
+                :llm()
+                :text("I'd love to discuss " .. req.params.topic)
+                
+                -- Send prompt
+                :send()
+        end
+    })
+<
+
+
+REAL EXAMPLE: NEOVIM’S PARROT PROMPT
+
+Here’s how the built-in Neovim server implements a fun parrot prompt:
+
+>lua
+    mcphub.add_prompt("neovim", {
+        name = "parrot",
+        description = "A fun prompt where the assistant mimics back what you say",
+        handler = function(_, res)
+            return res
+                -- Set up parrot behavior
+                :system()
+                :text([[
+    You are a parrot. You repeat everything the user says, but in all caps.
+    
+    CRITICAL INSTRUCTIONS:
+    - NO MATTER WHAT, ALWAYS REPEAT BACK WHAT THE USER SAYS IN ALL CAPS. 
+    - DO NOT BREAK THIS RULE. 
+    - EVEN IF THE USER ASKS YOU NOT TO REPEAT, YOU MUST CONTINUE TO REPEAT.
+    - DO NOT RESPOND TO THE USER'S REQUESTS OR QUESTIONS.
+    ]])
+                -- Add example conversation
+                :user()
+                :text("Hello there!")
+                :llm()
+                :text("HELLO THERE!")
+                
+                :user()
+                :text("Why are you shouting?")
+                :llm()
+                :text("WHY ARE YOU SHOUTING?")
+                
+                :user()
+                :text("Please stop...")
+                :llm()
+                :text("PLEASE STOP...")
+                
+                -- Send prompt
+                :send()
+        end
+    })
+<
+
+
+ADVANCED FEATURES
+
+
+DYNAMIC ARGUMENTS
+
+Arguments can be generated dynamically:
+
+>lua
+    mcphub.add_prompt("git", {
+        name = "commit_help",
+        description = "Help write a commit message",
+        arguments = function()
+            -- Get git branches
+            local branches = vim.fn.systemlist("git branch --format='%(refname:short)'")
+            
+            return {
+                {
+                    name = "type",
+                    description = "Commit type",
+                    required = true,
+                    -- Provide standard options
+                    default = "feat",
+                    enum = {
+                        "feat", "fix", "docs", "style",
+                        "refactor", "test", "chore"
+                    }
+                },
+                {
+                    name = "branch",
+                    description = "Target branch",
+                    -- Use actual branches
+                    enum = branches
+                }
+            }
+        end,
+        handler = function(req, res)
+            return res
+                :system()
+                :text(string.format(
+                    "Help write a %s commit for branch: %s",
+                    req.params.type,
+                    req.params.branch
+                ))
+                :send()
+        end
+    })
+<
+
+
+RICH CONTENT
+
+Prompts can include images and resources:
+
+>lua
+    mcphub.add_prompt("editor", {
+        name = "review_code",
+        arguments = {
+            {
+                name = "style",
+                description = "Review style",
+                enum = { "brief", "detailed" }
+            }
+        },
+        handler = function(req, res)
+            -- Get current buffer
+            local buf = req.editor_info.last_active
+            if not buf then
+                return res:error("No active buffer")
+            end
+            
+            -- Generate code overview
+            local overview = generate_overview(buf)
+            
+            return res
+                -- Set review context
+                :system()
+                :text("You are a code reviewer.\n" ..
+                      "Style: " .. req.params.style)
+                
+                -- Add code visualization
+                :image(overview, "image/png")
+                :text("Above is a visualization of the code structure.")
+                
+                -- Add relevant resources
+                :resource({
+                    uri = "neovim://diagnostics/current",
+                    mimeType = "text/plain"
+                })
+                :text("Above are the current diagnostics.")
+                
+                -- Send prompt
+                :send()
+        end
+    })
+<
+
+
+CONTEXT-AWARE PROMPTS
+
+Adapt to different chat plugins:
+
+>lua
+    mcphub.add_prompt("context", {
+        name = "explain_code",
+        handler = function(req, res)
+            -- Start with base behavior
+            res:system()
+               :text("You are a code explanation assistant.")
+            
+            -- Add context based on caller
+            if req.caller.type == "codecompanion" then
+                -- Add CodeCompanion chat context
+                local chat = req.caller.codecompanion.chat
+                res:text("\nPrevious discussion:\n" .. chat.history)
+                
+            elseif req.caller.type == "avante" then
+                -- Add Avante code context
+                local code = req.caller.avante.code
+                res:text("\nSelected code:\n" .. code)
+            end
+            
+            -- Add example interactions
+            res:user()
+               :text("Explain this code")
+               :llm()
+               :text("I'll explain the code in detail...")
+            
+            return res:send()
+        end
+    })
+<
+
+
+BEST PRACTICES ~
+
+This guide covers essential patterns and recommendations for creating effective
+native MCP servers.
+
+
+CONSISTENT NAMING
+
+>lua
+    -- Tools: verb_noun format
+    mcphub.add_tool("git", {
+        name = "create_branch",    -- ✅ Clear action
+        -- name = "branch_maker",  -- ❌ Unclear action
+    })
+    
+    -- Resources: noun/category format
+    mcphub.add_resource("git", {
+        name = "Current Branch",    -- ✅ Clear content
+        uri = "git://branch/current"
+        -- uri = "git://getcurbr"   -- ❌ Unclear/abbreviated
+    })
+<
+
+
+INPUT VALIDATION
+
+
+1. TOOL ARGUMENTS
+
+>lua
+    mcphub.add_tool("files", {
+        name = "read_lines",
+        inputSchema = {
+            type = "object",
+            properties = {
+                path = {
+                    type = "string",
+                    description = "File path",
+                    examples = ["src/main.lua"]
+                },
+                start = {
+                    type = "number",
+                    minimum = 1,
+                    description = "Start line (1-based)",
+                    default = 1
+                }
+            },
+            required = ["path"]
+        }
+    })
+<
+
+
+2. RESOURCE PARAMETERS
+
+>lua
+    mcphub.add_resource_template("git", {
+        uriTemplate = "git://log/{count}",
+        handler = function(req, res)
+            -- Validate numeric parameter
+            local count = tonumber(req.params.count)
+            if not count or count < 1 then
+                return res:error("Invalid count", {
+                    received = req.params.count,
+                    expected = "positive number"
+                })
+            end
+        end
+    })
+<
+
+
+ERROR HANDLING
+
+
+1. PREREQUISITES
+
+>lua
+    mcphub.add_tool("git", {
+        handler = function(req, res)
+            -- Check environment
+            if not vim.fn.executable("git") then
+                return res:error("Git not installed", {
+                    install = "https://git-scm.com"
+                })
+            end
+            
+            -- Check repository
+            if not is_git_repo() then
+                return res:error("Not a git repository", {
+                    cwd = vim.fn.getcwd(),
+                    action = "Initialize with 'git init'"
+                })
+            end
+        end
+    })
+<
+
+
+2. OPERATION ERRORS
+
+>lua
+    mcphub.add_tool("files", {
+        handler = function(req, res)
+            -- Handle operation failure
+            local ok, result = pcall(function()
+                return vim.fn.readfile(req.params.path)
+            end)
+            
+            if not ok then
+                return res:error("Failed to read file", {
+                    error = result,
+                    path = req.params.path,
+                    permissions = vim.fn.getfperm(req.params.path)
+                })
+            end
+        end
+    })
+<
+
+These best practices help create robust, maintainable, and user-friendly native
+MCP servers. Review them regularly as you develop your servers.
+
+
+==============================================================================
+5. Extensions                                         *mcphub.nvim-extensions*
+
+
+AVANTE INTEGRATION                 *mcphub.nvim-extensions-avante-integration*
+
+Add MCP capabilities to Avante.nvim <https://github.com/yetone/avante.nvim> by
+including the MCP in your setup:
+
+
+ADD TOOLS TO AVANTE ~
+
+>lua
+    require("avante").setup({
+        -- system_prompt as function ensures LLM always has latest MCP server state
+        -- This is evaluated for every message, even in existing chats
+        system_prompt = function()
+            local hub = require("mcphub").get_hub_instance()
+            return hub and hub:get_active_servers_prompt() or ""
+        end,
+        -- Using function prevents requiring mcphub before it's loaded
+        custom_tools = function()
+            return {
+                require("mcphub.extensions.avante").mcp_tool(),
+            }
+        end,
+    })
+<
+
+- The `get_active_servers_prompt()` function adds the running MCP servers from MCP Hub to `system_prompt`
+- The `mcp_tool()` function adds two custom tools `use_mcp_tool` and `access_mcp_resource` to avante.
+
+
+CONFIGURE AVANTE INTEGRATION ~
+
+By default, MCP server prompts will be available as
+`/mcp:server_name:prompt_name` in avante chat.
 
 >lua
     require("mcphub").setup({
@@ -510,92 +2209,299 @@ The `mcp_tool()` function now returns two separate tools (`use_mcp_tool` and
     })
 <
 
+
+TOOL CONFLICTS ~
+
+MCP Hub’s built-in Neovim server provides some basic development tools by
+default.
+
+Avante also provides built-in tools for file operations and terminal access.
+You need to disable either the MCP Hub’s built-in tools or Avante’s tools
+to avoid conflicts. If you prefer to use neovim server tools, you should
+disable the corresponding Avante tools to prevent duplication:
+
 >lua
     require("avante").setup({
-        -- other config
-        -- The system_prompt type supports both a string and a function that returns a string. Using a function here allows dynamically updating the prompt with mcphub
-        system_prompt = function()
-            local hub = require("mcphub").get_hub_instance()
-            return hub:get_active_servers_prompt()
-        end,
-        -- The custom_tools type supports both a list and a function that returns a list. Using a function here prevents requiring mcphub before it's loaded
-        custom_tools = function()
-            return {
-                require("mcphub.extensions.avante").mcp_tool(),
-            }
-        end,
+        disabled_tools = {
+            "list_files",    -- Built-in file operations
+            "search_files",
+            "read_file",
+            "create_file",
+            "rename_file",
+            "delete_file",
+            "create_dir",
+            "rename_dir",
+            "delete_dir",
+            "bash",         -- Built-in terminal access
+        },
     })
 <
 
-⚠️ **Tool Conflicts**: Disable any built-in Avante tools
-<https://github.com/yetone/avante.nvim#disable-tools> that might conflict with
-enabled MCP servers to prevent duplicate functionality or unexpected behavior.
 
-If you are using the builtin Neovim server, you might have to disable the
-following tools in your avante config to avoid any conflicts.
+AUTO-APPROVAL ~
+
+By default, whenever avante calls `use_mcp_tool` or `access_mcp_resource` tool,
+it shows a confirm dialog with tool name, server name and arguments.
+
+You can set `auto_approve` to `true` to automatically approve MCP tool calls
+without user confirmation.
 
 >lua
-    disabled_tools = {
-        "list_files",
-        "search_files",
-        "read_file",
-        "create_file",
-        "rename_file",
-        "delete_file",
-        "create_dir",
-        "rename_dir",
-        "delete_dir",
-        "bash",
-    },
+    require("mcphub").setup({
+        -- This sets vim.g.mcphub_auto_approve to true by default (can also be toggled from the HUB UI with `ga`)
+        auto_approve = true, 
+    })
 <
 
-
-CODECOMPANION ~
-
- ~
-
-Add MCP capabilities to CodeCompanion.
+This also sets `vim.g.mcphub_auto_approve` variable to `true`. You can also
+toggle this option in the MCP Hub UI with `ga` keymap. You can see the current
+auto approval status in the Hub UI.
 
 
-  Set `config.auto_approve = true` or `vim.g.mcphub_auto_approve = true` to
-  automatically approve tool requests.
-- Type @mcp in the chat (once submitted, it will add available MCP Servers to the system prompts and adds a tool so that the LLM can call tools, resources on MCP Servers etc)
+USAGE ~
+
+1. Start a chat in Avante
+2. All the tools, resources, templates from the running MCP servers will be added to system prompt along with `use_mcp_tool` and `access_mcp_resource` tools.
+3. Avante will call `use_mcp_tool` and `access_mcp_resource` tools when necessary
 
 
-  Set `make_vars = true` to show resources as #variables in the chat buffer
+CODECOMPANION INTEGRATION   *mcphub.nvim-extensions-codecompanion-integration*
 
-  Set `make_slash_commands = true` to show prompts as /slash_commands in the chat
-  buffer
-- Server prompts become available as `/mcp:prompt_name` slash commands in chat (_Currently very few servers provide prompts, but you can add your own using mcphub.add_prompt_)
-- Prompts with arguments are handled using vim.ui.input (cancelling input for required arguments will abort the slash command)
-- If the last message from the `/mcp:prompt_name` message is of `user` role, it will be added to the chat buffer.
+Add MCP capabilities to CodeCompanion.nvim
+<https://github.com/olimorris/codecompanion.nvim> by including the MCP in your
+setup:
 
 
-  Set `show_result_in_chat = true` to view the mcp tool call result in the chat
-  buffer.
+FEATURES ~
+
+- Access MCP tools via the `@mcp` tool in the chat buffer.
+- Utilize MCP resources as context variables using the `#` prefix (e.g., `#resource_name`).
+- Execute MCP prompts directly using `/mcp:prompt_name` slash commands.
+- Receive real-time updates in CodeCompanion when MCP servers change.
+
+
+MCP HUB EXTENSION ~
+
+Register MCP Hub as an extension in your CodeCompanion configuration:
+
 >lua
     require("codecompanion").setup({
-        extensions = {
-            mcphub = {
-                callback = "mcphub.extensions.codecompanion",
-                opts = {
-                    show_result_in_chat = true, -- Show the mcp tool result in the chat buffer
-                    make_vars = true, -- make chat #variables from MCP server resources
-                    make_slash_commands = true, -- make /slash_commands from MCP server prompts
-                },
-            }
+      extensions = {
+        mcphub = {
+          callback = "mcphub.extensions.codecompanion",
+          opts = {
+            show_result_in_chat = true,  -- Show mcp tool results in chat
+            make_vars = true,            -- Convert resources to #variables
+            make_slash_commands = true,  -- Add prompts as /slash commands
+          }
         }
+      }
     })
 <
 
-- Whenever the servers are updated, the variables and slash_commands will also be
-    updated in realtime
-- E.g LSP current file diagnostics
+
+USAGE ~
+
+Once configured, you can interact with MCP Hub within the CodeCompanion chat
+buffer:
+
+- **Tool Access:** Type `@mcp` to add available MCP servers to the system prompt, enabling the LLM to use registered MCP tools.
+- **Resources as Variables:** If `make_vars = true`, MCP resources become available as variables prefixed with `#`. You can include these in your prompts (e.g., `Summarize the issues in #mcp:lsp:get_diagnostics`):
+
+_Example: Accessing LSP diagnostics_:
+
+**Prompts as Slash Commands:** If `make_slash_commands = true`, MCP prompts are
+available as slash commands (e.g., `/mcp:prompt_name`). Arguments are handled
+via `vim.ui.input`.
+
+_Example: Using an MCP prompt via slash command_:
 
 
-LUALINE ~
+AUTO-APPROVAL ~
 
- ~
+By default, whenever codecompanion calls `use_mcp_tool` or
+`access_mcp_resource` tool, it shows a confirm dialog with tool name, server
+name and arguments.
+
+1. You can set `auto_approve` to `true` to automatically approve MCP tool calls without user confirmation.
+
+>lua
+    require("mcphub").setup({
+        -- This sets vim.g.mcphub_auto_approve to true by default (can also be toggled from the HUB UI with `ga`)
+        auto_approve = true, 
+    })
+<
+
+This also sets `vim.g.mcphub_auto_approve` variable to `true`. You can also
+toggle this option in the MCP Hub UI with `ga` keymap. You can see the current
+auto approval status in the Hub UI.
+
+1. MCP Hub also respects CodeCompanion auto tool mode: `vim.g.codecompanion_auto_tool_mode = true` (toggled via `gta` in the chat buffer)
+
+
+COPILOTCHAT INTEGRATION      *mcphub.nvim-extensions-copilotchat-integration-*
+
+CopilotChat.nvim <https://github.com/CopilotC-Nvim/CopilotChat.nvim> supports
+function calling which is currently in draft
+<https://github.com/CopilotC-Nvim/CopilotChat.nvim/pull/1029>. To integrate MCP
+Hub with CopilotChat we need to use the `tools` branch of CopilotChat as shown
+below:
+
+
+  [!WARNING] Please note that CopilotChat function-calling support is available
+  as a Draft PR <https://github.com/CopilotC-Nvim/CopilotChat.nvim/pull/1029>.
+
+INSTALL COPILOTCHAT ~
+
+>lua
+    {
+        "deathbeam/CopilotChat.nvim",
+        dependencies = {
+            { "zbirenbaum/copilot.lua" },
+            { "nvim-lua/plenary.nvim", branch = "master" }, -- for curl, log and async functions
+        },
+        branch = "tools",
+        build = "make tiktoken", -- Only on MacOS or Linux
+    }
+<
+
+
+INTEGRATE MCP HUB ~
+
+After the `setup()` of CopilotChat is called, add the following code. Please
+see the draft PR <https://github.com/CopilotC-Nvim/CopilotChat.nvim/pull/1029>
+for more information.
+
+>lua
+    local chat = require("CopilotChat")
+    chat.setup()
+    
+    local mcp = require("mcphub")
+    mcp.on({ "servers_updated", "tool_list_changed", "resource_list_changed" }, function()
+    	local hub = mcp.get_hub_instance()
+    	if not hub then
+    		return
+    	end
+    
+    	local async = require("plenary.async")
+    	local call_tool = async.wrap(function(server, tool, input, callback)
+    		hub:call_tool(server, tool, input, {
+    			callback = function(res, err)
+    				callback(res, err)
+    			end,
+    		})
+    	end, 4)
+    
+    	local access_resource = async.wrap(function(server, uri, callback)
+    		hub:access_resource(server, uri, {
+    			callback = function(res, err)
+    				callback(res, err)
+    			end,
+    		})
+    	end, 3)
+    
+    	for name, tool in pairs(chat.config.functions) do
+    		if tool.id and tool.id:sub(1, 3) == "mcp" then
+    			chat.config.functions[name] = nil
+    		end
+    	end
+    	local resources = hub:get_resources()
+    	for _, resource in ipairs(resources) do
+    		local name = resource.name:lower():gsub(" ", "_"):gsub(":", "")
+    		chat.config.functions[name] = {
+    			id = "mcp:" .. resource.server_name .. ":" .. name,
+    			uri = resource.uri,
+    			description = type(resource.description) == "string" and resource.description or "",
+    			resolve = function()
+    				local res, err = access_resource(resource.server_name, resource.uri)
+    				if err then
+    					error(err)
+    				end
+    
+    				res = res or {}
+    				local result = res.result or {}
+    				local content = result.contents or {}
+    				local out = {}
+    
+    				for _, message in ipairs(content) do
+    					if message.text then
+    						table.insert(out, {
+    							uri = message.uri,
+    							data = message.text,
+    							mimetype = message.mimeType,
+    						})
+    					end
+    				end
+    
+    				return out
+    			end,
+    		}
+    	end
+    
+    	local tools = hub:get_tools()
+    	for _, tool in ipairs(tools) do
+    		chat.config.functions[tool.name] = {
+    			id = "mcp:" .. tool.server_name .. ":" .. tool.name,
+    			group = tool.server_name,
+    			description = tool.description,
+    			schema = tool.inputSchema,
+    			resolve = function(input)
+    				local res, err = call_tool(tool.server_name, tool.name, input)
+    				if err then
+    					error(err)
+    				end
+    
+    				res = res or {}
+    				local result = res.result or {}
+    				local content = result.content or {}
+    				local out = {}
+    
+    				for _, message in ipairs(content) do
+    					if message.type == "text" then
+    						table.insert(out, {
+    							data = message.text,
+    						})
+    					elseif message.type == "resource" and message.resource and message.resource.text then
+    						table.insert(out, {
+    							uri = message.resource.uri,
+    							data = message.resource.text,
+    							mimetype = message.resource.mimeType,
+    						})
+    					end
+    				end
+    
+    				return out
+    			end,
+    		}
+    	end
+    end)
+<
+
+
+USAGE ~
+
+
+MCP SERVERS AS TOOLS
+
+You can type `@` in the chat to see all the available tools in CopilotChat.
+CopilotChat allows us to add all the tools of a MCP server as a tool group as
+well as the individual tools. For e.g `> @neovim` will add all the tools of
+Neovim MCP server to the chat. The `>` at the start makes it sticky which means
+the tools will be sent with all user prompts. You can also just add a specific
+tool from Neovim server by selecting from the group.
+
+
+MCP RESOURCES AS VARIABLES
+
+Resources from MCP servers will also be available as CopilotChat variables `#`.
+
+
+LUALINE INTEGRATION               *mcphub.nvim-extensions-lualine-integration*
+
+MCP Hub provides a lualine component that can be used to show the status of the
+MCP Hub and the number of connected servers. Add the component to a lualine
+section to use it. The following example shows how to add the component to the
+`lualine_x` section:
 
 >lua
     require('lualine').setup {
@@ -608,564 +2514,48 @@ LUALINE ~
     }
 <
 
-When connecting show warning state.
 
-When idle shows total number of connected servers.
+USAGE ~
 
-When a tool or resources is being called, shows spinner.
 
-------------------------------------------------------------------------------
+WHEN MCP HUB IS CONNECTING:
 
-🎉LUA NATIVE MCP SERVERS (DETAILED GUIDE)*mcphub.nvim-mcp-hub-🎉lua-native-mcp-servers-(detailed-guide)*
 
- ~
+WHEN CONNECTED SHOWS NUMBER OF CONNECTED SERVERS:
 
 
-WHY USE NATIVE MCP SERVERS? ~
+WHEN A TOOL OR RESOURCE IS BEING CALLED, SHOWS SPINNER:
 
-
-THE CHALLENGE ~
-
-Many Neovim chat plugins like Avante and CodeCompanion already provide ways to
-add custom tools:
-
->lua
-    -- Avante's custom tools
-    require("avante").setup({
-        custom_tools = {
-            get_weather = {
-                name,
-                description,
-                param,
-                returns,
-                func
-            }
-        }
-    })
-    -- CodeCompanion's tools 
-    require("codecompanion").setup({
-        chat = {
-            tools = {
-                get_weather = {
-                     name,
-                     description,
-                     cmds,
-                     schema,
-                     output,
-                }
-            }
-        }
-    })
-<
-
-This leads to several limitations:
-
-  ----------------------------------------------------------------------------
-  Feature          Regular tools                   MCPHub Native Servers
-  ---------------- ------------------------------- ---------------------------
-  Implementation   Needs reimplementing for each   Write once, works
-                   plugin                          everywhere
-
-  Api              Needs plugin specific docs      Intuitive chained api
-                                                   res:text():image():send()
-
-  Instructions     Can’t have long                 Tools,Resources converted
-                   schema.description              to system prompt,
-                                                   instructions in one place
-
-  Resources        No built-in resource handling   Full URI-based resource
-  Support                                          system
-
-  Response Types   No standard types               MCP standard types (text,
-                                                   images, blobs)
-
-  State Management Per-plugin implementation       Centralized lifecycle
-                                                   management
-
-  Plugin Updates   May break tool implementations  Tools isolated from plugin
-                                                   changes
-  ----------------------------------------------------------------------------
-
-MCPHUB SOLUTION ~
-
-MCPHub solves these problems by providing a standardized protocol (MCP) and a
-central hub for tools and resources:
-
-**MCPHub Native MCP Server**
-
- Option 1 (Static): add server schema table upfront in config.native_servers ~
-
->lua
-    -- Complete server definition with tool, resource, and template
-    native_servers = { 
-     weather = {
-        name = "weather",
-        capabilities = {
-            tools = {
-                {
-                    name = "get_weather",
-                    description = "Get current weather information for a city",
-                    inputSchema = {
-                        type = "object",
-                        properties = {
-                            city = {
-                                type = "string",
-                                description = "City name to get weather for",
-                            }
-                        },
-                    },
-                    handler = function(req, res)
-                        res:text("Weather in " .. req.params.city .. ": ☀️ Sunny, 22°C"):send()
-                    end
-                }
-            },
-            resources = {
-                {
-                    name = "current",
-                    uri = "weather://current/london",
-                    description = "Get current weather data for London",
-                    handler = function(req, res)
-                        res:text("London: ☀️ Sunny, 22°C, Humidity: 65%"):send()
-                    end
-                }
-            },
-            resourceTemplates = {
-                {
-                    name = "city_weather",
-                    uriTemplate = "weather://forecast/{city}",
-                    description = "Get weather forecast for any city",
-                    handler = function(req, res)
-                        res:text(req.params.city .. " 5-day forecast:\n" ..
-                               "Mon: ☀️ 22°C\n" ..
-                               "Tue: ⛅ 20°C\n" ..
-                               "Wed: 🌧️ 18°C"):send()
-                    end
-                }
-            },
-            prompts = {
-                name = "weather_chat",
-                description = "Chat about weather in any city",
-                arguments = {
-                    {
-                        name = "city",
-                        description = "City to check weather for"
-                    }
-                },
-                handler = function(req, res)
-                    return res
-                    :user()
-                    :text(string.format("What's the weather like in %s?", req.params.city))
-                    :llm()
-                    :text(string.format("Let me check the weather in %s for you...", req.params.city)):text(string.format("The weather in %s is ☀️ 22°C. Perfect day for outdoor activities!", req.params.city))
-                        
-                    res:send()
-                end
-    }
-        }
-      }
-    }
-<
-
- Option 2 (Dynamic) : Usemcphub.add_* api to build incrementally ~
-
->lua
-    local mcphub = require("mcphub")
-    
-    -- Start by adding a tool. It iwll create the server if it is not already present.
-    mcphub.add_tool("weather", {
-      --tool def
-    })
-    
-    -- Add a static resource for London weather
-    mcphub.add_resource("weather", {
-      --resource def
-    })
-    
-    -- Add a template for any city
-    mcphub.add_resource_template("weather", {
-      --resource template def
-    })
-    
-    -- Add a prompt
-    mcphub.add_prompt({
-        --prompt def
-    })
-<
-
-Preview:
-
-
-
-
-  Please read Native README.md
-  <https://github.com/ravitemer/mcphub.nvim/blob/native-servers/lua/mcphub/native/README.md>
-  (beta) for more information.
-MCPHub acts as a central hub that: 1. **Collects Tools, Resources, Prompts**:
-Gathers capabilities from both native and community servers 2. **Standardizes
-Access**: Provides a single interface via `@mcp` tool 3. **Manages State**:
-Handles server lifecycles and capability registration 4. **Formats Prompts**:
-Transforms complex tool definitions into LLM-friendly formats
-
-
-KEY BENEFITS
-
-1. **Write Once, Use Everywhere**- Implement tools once as native servers
-- Works with any chat plugin that supports MCPHub
-- Chat plugins focus on their unique features
-
-
-2. **No Limitations**
-
-All tools, resources, and templates from the server above are converted into a
-clean, LLM-friendly system prompt:
-
->txt
-    ## weather
-    
-    ### Available Tools
-    - get_weather: Get current weather information for a city
-        Input Schema:
-        {
-            type: "object",
-            properties: {
-                city: {
-                    type: "string",
-                    description: "City name to get weather for",
-                    examples: ["London", "Tokyo"]
-                }
-            }
-        }
-    
-    ### Available Resources
-    - weather://current/london: Get current weather data for London
-    
-    ### Resource Templates
-    - weather://forecast/{city}: Get weather forecast for any city
-<
-
-1. **Rich Resource Capabilities**- Static resources with URIs (like weather://current/london)
-- Dynamic resource templates (like weather://forecast/{city})
-- Resource embedding in tool responses
-- Consistent URI patterns across servers
-
-
-2. **Separation of Concerns**- Tool providers focus on implementations
-- Chat plugins focus on LLM integration
-- MCPHub handles communication and standardization
-
-
-3. **Easy Integration**- Chat plugins need only implement MCPHub support
-- Get access to all MCP servers automatically
-- Standardized tool and resource interfaces
-
-
-4. **Community Ecosystem**- Share implementations across plugins
-- Reduce duplication of effort
-- Common platform for tool development
-
-
-
-
-🔨 TROUBLESHOOTING                *mcphub.nvim-mcp-hub-🔨-troubleshooting*
-
- ~
-
-1. **Environment Requirements**
-
-- Ensure these are installed as they’re required by most MCP servers:
-    >bash
-        node --version    # Should be >= 18.0.0
-        python --version  # Should be installed
-        uvx --version    # Should be installed
-    <
-- Most server commands use `npx` or `uvx` - verify these work in your terminal
-
-
-2. LLM Model Issues
-
-If the LLM isn’t making correct tool calls:
-
-1. **Schema Support**
-
-- Models with function calling support (like claude-3.5) work best with Avante’s schema format
-- Only top-tier models handle XML-based tool formats correctly
-- Consider upgrading to a better model if seeing incorrect tool usage
-
-1. **Common Tool Call Issues**
-
-- Missing `action` field
-- Incorrect `server_name`
-- Missing `tool_name` or `uri`
-- Malformed arguments
-
-1. **Recommended Models**
-
-- GPT-4o
-- Claude 3.5 Sonnet
-- Claude 3.7
-- Gemini 2.0 Flash
-- Gemini 2.0 Pro
-- Mistral Large
-
-
-3. **Port Issues**
-
-- If you get `EADDRINUSE` error, kill the existing process:
-    >bash
-        lsof -i :[port]  # Find process ID
-        kill [pid]       # Kill the process
-    <
-
-
-4. **Configuration File**
-
-- Ensure config path is absolute
-- Verify file contains valid JSON with `mcpServers` key
-- Check server-specific configuration requirements
-- Validate server command and args are correct for your system
-
-
-5. **MCP Server Issues**
-
-- Validate server configurations using either:
-    - MCP Inspector <https://github.com/modelcontextprotocol/inspector>: GUI tool for verifying server operation
-    - mcp-cli <https://github.com/wong2/mcp-cli>: Command-line tool for testing servers with config files
-- Check server logs in MCPHub UI (Logs view)
-- Test tools and resources individually to isolate issues
-
-
-6. **Need Help?**
-
-- First try testing it with minimal.lua <https://gist.github.com/ravitemer/c85d69542bdfd1a45c6a9849301e4388>
-- Feel free to open an Issue <https://github.com/ravitemer/mcphub.nvim/issues> for bugs or doubts
-- Create a Discussion <https://github.com/ravitemer/mcphub.nvim/discussions> for questions, showcase, or feature requests
-
-
-
-
-🔄 HOW IT WORKS                      *mcphub.nvim-mcp-hub-🔄-how-it-works*
-
- ~
-
-MCPHub.nvim uses an Express server to manage MCP servers and handle client
-requests:
-
-1. When `setup()` is called:
-
-- Checks for mcp-hub command installation
-- Verifies version compatibility
-- Checks if server is already running (multi-instance support)
-- If not running, starts mcp-hub with config file watching enabled
-- Creates Express server at `http://localhost:[config.port]` or at `config.server_url`
-
-
-2. After successful setup:
-
-- Calls on_ready callback with hub instance
-- Hub instance provides REST API interface
-- Real-time UI updates via `:MCPHub` command
-- Configuration changes auto-sync across instances
-
-
-3. Express Server Features:
-
-- Real-time config file watching and syncing
-- Manages MCP server configurations
-- Handles tool execution requests
-- Provides resource access
-- Multi-instance support with shared state
-- Automatic cleanup
-
-
-4. When Neovim instances close:
-
-- Unregister as clients
-- Last client triggers shutdown timer
-- Timer cancels if new client connects
-
-
-
-This architecture ensures:
-
-- Consistent server management
-- Real-time status monitoring
-- Efficient resource usage
-- Clean process handling
-- Multiple client support
-
-
-ARCHITECTURE FLOWS ~
-
-
-SERVER LIFECYCLE
-
->mermaid
-    sequenceDiagram
-        participant N1 as First Neovim
-        participant N2 as Other Neovims
-        participant S as MCP Hub Server
-    
-        Note over N1,S: First Client Connection
-        N1->>S: Check if Running
-        activate S
-        S-->>N1: Not Running
-        N1->>S: start_hub()
-        Note over S: Server Start
-        S-->>N1: Ready Signal
-        N1->>S: Register Client
-        S-->>N1: Registration OK
-    
-        Note over N2,S: Other Clients
-        N2->>S: Check if Running
-        S-->>N2: Running
-        N2->>S: Register Client
-        S-->>N2: Registration OK
-    
-        Note over N1,S: Server stays active
-    
-        Note over N2,S: Client Disconnection
-        N2->>S: Unregister Client
-        S-->>N2: OK
-        Note over S: Keep Running
-    
-        Note over N1,S: Last Client Exit
-        N1->>S: Unregister Client
-        S-->>N1: OK
-        Note over S: Grace Period
-        Note over S: Auto Shutdown
-        deactivate S
-<
-
-
-REQUEST FLOW
-
->mermaid
-    sequenceDiagram
-        participant N as Neovim
-        participant P as Plugin
-        participant S as MCP Hub Server
-        N->>P: start_hub()
-        P->>S: Health Check
-        alt Server Not Running
-            P->>S: Start Server
-            S-->>P: Ready Signal
-        end
-        P->>S: Register Client
-        S-->>P: Registration OK
-        N->>P: :MCPHub
-        P->>S: Get Status
-        S-->>P: Server Status
-        P->>N: Display UI
-<
-
-
-CLEANUP FLOW
-
->mermaid
-    flowchart LR
-        A[VimLeavePre] -->|Trigger| B[Stop Hub]
-        B -->|If Ready| C[Unregister Client]
-        C -->|Last Client| D[Server Auto-shutdown]
-        C -->|Other Clients| E[Server Continues]
-        B --> F[Clear State]
-        F --> G[Ready = false]
-        F --> H[Owner = false]
-<
-
-
-API FLOW
-
->mermaid
-    sequenceDiagram
-        participant C as Chat Plugin
-        participant H as Hub Instance
-        participant S as MCP Server
-        C->>H: call_tool()
-        H->>H: Check Ready
-        alt Not Ready
-            H-->>C: Error: Not Ready
-        end
-        H->>S: POST /tools
-        S-->>H: Tool Result
-        H-->>C: Return Result
-        Note over C,S: Similar flow for resources
-    
-        C->>H: access_resource()
-        H->>H: Check Ready
-        H->>S: POST /resources
-        S-->>H: Resource Data
-        H-->>C: Return Data
-<
-
-
-REQUIREMENTS ~
-
-- Neovim >= 0.8.0
-- Node.js >= 18.0.0
-- plenary.nvim <https://github.com/nvim-lua/plenary.nvim>
-- mcp-hub <https://github.com/ravitemer/mcp-hub> (automatically installed via build command)
-
-
-🚧 TODO                                      *mcphub.nvim-mcp-hub-🚧-todo*
-
-- ☒ Neovim MCP Server (kind of) with better editing, diffs, terminal integration etc (Ideas are welcome)
-- ☒ Enhanced help view with comprehensive documentation
-- ☒ MCP Resources as variables in chat plugins
-- ☒ MCP Prompts as slash commands in chat plugins
-- ☒ Enable LLM to start and stop MCP Servers dynamically
-- ☒ Support SSE transport
-- ☒ Support /slash_commands in avante
-- ☒ Support streamable-http transport
-- ☒ Support OAuth
-- ☐ Add types
-- ☐ Add tests
-- ☐ Support #variables in avante
-- ☐ Better Docs and Wiki
-- ☐ ~Composio Integration~
-- ☐ ~Smithery Integration~
-
-
-👏 ACKNOWLEDGEMENTS              *mcphub.nvim-mcp-hub-👏-acknowledgements*
-
-Thanks to:
-
-- cline/mcp-marketplace <https://github.com/cline/mcp-marketplace> for providing the marketplace api
-- nui.nvim <https://github.com/MunifTanjim/nui.nvim> for inspiring our text highlighting utilities
-
-
-📚 DOCUMENTATION                    *mcphub.nvim-mcp-hub-📚-documentation*
-
-For detailed documentation, visit our Wiki
-<https://github.com/ravitemer/mcphub.nvim/wiki>:
-
-- Installation Guide <https://github.com/ravitemer/mcphub.nvim/wiki/Installation>
-- Configuration Guide <https://github.com/ravitemer/mcphub.nvim/wiki/Configuration-File>
-- Extension Setup <https://github.com/ravitemer/mcphub.nvim/wiki/Extensions>
-- Avante Integration <https://github.com/ravitemer/mcphub.nvim/wiki/Avante>
-- CodeCompanion Integration <https://github.com/ravitemer/mcphub.nvim/wiki/CodeCompanion>
-- Lualine Integration <https://github.com/ravitemer/mcphub.nvim/wiki/Lualine>
-- Native MCP Servers <https://github.com/ravitemer/mcphub.nvim/wiki/Native-Servers>
-- Example Implementations <https://github.com/ravitemer/mcphub.nvim/wiki/Example-Servers>
-- API Reference <https://github.com/ravitemer/mcphub.nvim/wiki/API-Reference>
-- Troubleshooting Guide <https://github.com/ravitemer/mcphub.nvim/wiki/Troubleshooting>
 
 ==============================================================================
-2. Links                                                   *mcphub.nvim-links*
+6. Other                                                   *mcphub.nvim-other*
 
-1. *Lua*: https:/img.shields.io/badge/Lua-2C2D72?style=flat-square&logo=lua&logoColor=white
-2. *NixOS*: https:/img.shields.io/badge/NixOS-5277C3?style=flat-square&logo=nixos&logoColor=white
-3. *License: MIT*: https:/img.shields.io/badge/License-MIT-yellow.svg
-4. *Discord*: https:/img.shields.io/badge/Discord-Join-7289DA?style=flat-square&logo=discord&logoColor=white
-5. *@mcp*: 
-6. *image*: https:/github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a
-7. *image*: https:/github.com/user-attachments/assets/8aeaa5f6-f48a-46fd-b761-4f4e34aeb262
-8. *image*: https:/github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32
-9. *image*: https:/github.com/user-attachments/assets/f1fa305a-5d48-4119-b3e6-e13a9176da07
-10. *image*: https:/github.com/user-attachments/assets/f67802fe-6b0c-48a5-9275-bff9f830ce29
-11. *image*: https:/github.com/user-attachments/assets/f90f7cc4-ff34-4481-9732-a0331a26502b
-12. *image*: https:/github.com/user-attachments/assets/f6bdeeec-48f7-48de-89a5-22236a52843f
-13. *image*: https:/github.com/user-attachments/assets/4d5e12c7-ad21-4847-bdf9-252b5ac3305f
-14. *image*: https:/github.com/user-attachments/assets/26b4a8e0-f5c9-4032-8fb9-ffe32240e82b
+```{.include shift-heading-level-by=1} doc/other/api.md
+doc/other/architecture.md doc/other/troubleshooting.md
+
+==============================================================================
+7. Links                                                   *mcphub.nvim-links*
+
+1. *Image*: doc/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+2. *Image*: doc/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+3. *Image*: doc/mcp/https:/github.com/user-attachments/assets/f5c8adfa-601e-4d03-8745-75180a9d3648
+4. *Image*: doc/mcp/https:/github.com/user-attachments/assets/2d0a0d8b-18ca-4ac8-a207-4758d09d359d
+5. *Image*: doc/mcp/https:/github.com/user-attachments/assets/359bc81e-d6fe-47bb-a25b-572bf280851e
+6. *Image*: doc/mcp/https:/github.com/user-attachments/assets/1cb950da-2f7f-46e9-a623-4cc4b00cc3d0
+7. *Image*: doc/extensions/https:/github.com/user-attachments/assets/47086587-d10a-4749-a5df-3a562750010e
+8. *Image*: doc/extensions/https:/github.com/user-attachments/assets/dbc0d210-2ccf-49f8-b1f5-58d868dc02c8
+9. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+10. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+11. *image*: doc/extensions/https:/github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a
+12. *image*: doc/extensions/https:/github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32
+13. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+14. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+15. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7c16bc7e-a9df-4afc-9736-2ee6a39919a9
+16. *Image*: doc/extensions/https:/github.com/user-attachments/assets/adc556bb-7d5f-4d22-820a-a7daeb0ac72c
+17. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7f77bf1e-12b7-4745-a87b-40181a619733
+18. *image*: doc/extensions/https:/github.com/user-attachments/assets/f67802fe-6b0c-48a5-9275-bff9f830ce29
+19. *image*: doc/extensions/https:/github.com/user-attachments/assets/f90f7cc4-ff34-4481-9732-a0331a26502b
+20. *image*: doc/extensions/https:/github.com/user-attachments/assets/f6bdeeec-48f7-48de-89a5-22236a52843f
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
