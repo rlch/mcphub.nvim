@@ -2,6 +2,7 @@ local highlights = require("mcphub.utils.highlights").groups
 local ImageCache = require("mcphub.utils.image_cache")
 local NuiLine = require("mcphub.utils.nuiline")
 local Text = require("mcphub.utils.text")
+local ui_utils = require("mcphub.utils.ui")
 
 ---@class CapabilityHandler
 local CapabilityHandler = {
@@ -96,7 +97,9 @@ function CapabilityHandler:handle_input(prompt, default, callback)
 end
 
 -- Text box handling
-function CapabilityHandler:open_text_box(...) end
+function CapabilityHandler:open_text_box(...)
+    ui_utils.multiline_input(...)
+end
 
 -- Common section rendering utilities
 function CapabilityHandler:render_section_start(title, highlight)
