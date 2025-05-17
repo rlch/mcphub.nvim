@@ -1,11 +1,12 @@
-*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 16
+*mcphub.nvim.txt*           For NVIM v0.10.0          Last change: 2025 May 17
 
 ==============================================================================
 Table of Contents                              *mcphub.nvim-table-of-contents*
 
-1. Welcome to MCP Hub                         |mcphub.nvim-welcome-to-mcp-hub|
-  - Getting Started           |mcphub.nvim-welcome-to-mcp-hub-getting-started|
-  - Next Steps                     |mcphub.nvim-welcome-to-mcp-hub-next-steps|
+1. What is MCP HUB?                             |mcphub.nvim-what-is-mcp-hub?|
+  - How does MCP Hub work?|mcphub.nvim-what-is-mcp-hub?-how-does-mcp-hub-work?|
+  - Feature Support Matrix|mcphub.nvim-what-is-mcp-hub?-feature-support-matrix|
+  - Next Steps                       |mcphub.nvim-what-is-mcp-hub?-next-steps|
 2. Installation                                     |mcphub.nvim-installation|
   - Requirements                       |mcphub.nvim-installation-requirements|
   - Lazy.nvim                             |mcphub.nvim-installation-lazy.nvim|
@@ -27,68 +28,169 @@ Table of Contents                              *mcphub.nvim-table-of-contents*
 7. Links                                                   |mcphub.nvim-links|
 
 ==============================================================================
-1. Welcome to MCP Hub                         *mcphub.nvim-welcome-to-mcp-hub*
+1. What is MCP HUB?                             *mcphub.nvim-what-is-mcp-hub?*
 
-MCPHub.nvim is a MCP Client for neovim that seamlessly integrates MCP (Model
+MCPHub.nvim is a MCP client for neovim that seamlessly integrates MCP (Model
 Context Protocol) <https://modelcontextprotocol.io/> servers into your editing
 workflow. It provides an intuitive interface for managing, testing, and using
-MCP servers with your favorite LLM chat plugins.
+MCP servers with your favorite chat plugins.
 
 
-  [!IMPORTANT] It is recommended to read the below "Getting Started" section
-  before going through the rest of the documentation.
+  [!IMPORTANT] It is recommended to read this page before going through the rest
+  of the documentation.
 
-GETTING STARTED               *mcphub.nvim-welcome-to-mcp-hub-getting-started*
+HOW DOES MCP HUB WORK?   *mcphub.nvim-what-is-mcp-hub?-how-does-mcp-hub-work?*
 
 Let’s break down how MCP Hub operates in simple terms:
 
-1. **Declare MCP Servers**- MCP servers are defined in a JSON configuration file
-- Each server can be a local script or a remote endpoint
-- You can configure authentication, environment variables, and other settings
 
+MCP CONFIG FILE ~
 
+Like any MCP client, MCP Hub requires a configuration file to define the MCP
+servers you want to use. This file is typically located at
+`~/.config/mcphub/servers.json`. MCP Hub supports local `stdio` servers as well
+as remote `streamable-http` or `sse` servers. This is similar to
+`claude_desktop_config.json` file for Claude desktop or `mcp.json` file used by
+VSCode. In fact you can use the same file for MCP Hub as well with some
+additional benefits. It looks something like:
 
 >js
-      // Example: ~/.config/mcphub/servers.json
-       {
-         "mcpServers": {
-           "fetch": {
-             "command": "uvx",
-             "args": [
-               "mcp-server-fetch"
-             ]
-           },
-           "remote-server": {
-             "url": "https://api.example.com/mcp"
-           }
-         }
-       }
+    // Example: ~/.config/mcphub/servers.json
+    {
+      "mcpServers": {
+        "fetch": {
+          "command": "uvx",
+          "args": [
+            "mcp-server-fetch"
+          ]
+        },
+        "remote-server": {
+          "url": "https://api.example.com/mcp"
+        }
+      }
+    }
 <
 
-1. **Server Management**- When you start Neovim, our plugin launches the nodejs binary, mcp-hub <https://github.com/ravitemer/mcp-hub> (an Express server)
-- `mcp-hub` binary reads your servers config file and starts the MCP servers
-- It provides a REST API endpoint (default: `http://localhost:37373`) for interacting with servers
+
+SERVERS MANAGER ~
+
+- When MCP Hub’s `setup()` is called typically when Neovim starts, it launches the nodejs binary, mcp-hub <https://github.com/ravitemer/mcp-hub> with the `servers.json` file.
+- The `mcp-hub` binary reads `servers.json` file and starts the MCP servers.
+- It provides a express REST API endpoint (default: `http://localhost:37373`) for clients to interact with MCP servers
 - The plugin communicates with this endpoint to:
     - Start/stop MCP servers
     - Execute tools, resources, prompts etc
-    - Handle real-time server events
+    - Handle real-time server events when tools or resources are changed.
 
 
-2. **Usage**- Use `:MCPHub` command to open the interface
-- Manage servers, tools, and resources
-- Browse and install servers from marketplace
+USAGE ~
+
+- Use `:MCPHub` command to open the interface
+- Adding (`<A>`), editing (`<e>`), deleting (`<d>`) MCP servers in easy and intuitive with MCP Hub. You don’t need to edit the `servers.json` file directly.
+- Install servers from the Marketplace (`M`)
+- Toggle servers, tools, and resources etc
 - Test tools and resources directly in Neovim
 
 
-3. **Chat Integration**- Works with popular chat plugins like Avante <https://github.com/yetone/avante.nvim>, CodeCompanion <https://github.com/olimorris/codecompanion.nvim>, CopilotChat <https://github.com/CopilotC-Nvim/CopilotChat.nvim>
-- LLMs can use MCP servers through our `@mcp` tool
-- Resources show up as `#variables` in chat
-- Prompts become `/slash_commands`
+CHAT INTEGRATIONS ~
+
+- MCP Hub provides integrations with popular chat plugins like Avante <https://github.com/yetone/avante.nvim>, CodeCompanion <https://github.com/olimorris/codecompanion.nvim>, CopilotChat <https://github.com/CopilotC-Nvim/CopilotChat.nvim>.
+- LLMs can use MCP servers through our `@mcp` tool.
+- Resources show up as `#variables` in chat.
+- Prompts become `/slash_commands`.
 
 
+FEATURE SUPPORT MATRIX   *mcphub.nvim-what-is-mcp-hub?-feature-support-matrix*
 
+  ---------------------------------------------------------------------------------
+  Category             Feature              Support            Details
+  -------------------- -------------------- ------------------ --------------------
+  Capabilities                                                 
 
-NEXT STEPS                         *mcphub.nvim-welcome-to-mcp-hub-next-steps*
+                       Tools                ✅                 Full support
+
+                       🔔 Tool List Changed ✅                 Real-time updates
+
+                       Resources            ✅                 Full support
+
+                       🔔 Resource List     ✅                 Real-time updates
+                       Changed                                 
+
+                       Resource Templates   ✅                 URI templates
+
+                       Prompts              ✅                 Full support
+
+                       🔔 Prompts List      ✅                 Real-time updates
+                       Changed                                 
+
+                       Roots                ❌                 Not supported
+
+                       Sampling             ❌                 Not supported
+
+  MCP Server                                                   
+  Transports                                                   
+
+                       Streamable-HTTP      ✅                 Primary transport
+                                                               protocol for remote
+                                                               servers
+
+                       SSE                  ✅                 Fallback transport
+                                                               for remote servers
+
+                       STDIO                ✅                 For local servers
+
+  Authentication for                                           
+  remote servers                                               
+
+                       OAuth                ✅                 With PKCE flow
+
+                       Headers              ✅                 For API keys/tokens
+
+  Chat Integration                                             
+
+                       Avante.nvim          ✅                 Tools, resources,
+                                                               resourceTemplates,
+                                                               prompts(as
+                                                               slash_commands)
+
+                       CodeCompanion.nvim   ✅                 Tools, resources,
+                                                               resourceTemplates,
+                                                               prompts (as
+                                                               slash_commands)
+
+                       CopilotChat.nvim     ✅                 In-built support
+                                                               Draft
+
+  Marketplace                                                  
+
+                       Server Discovery     ✅                 Browse from verified
+                                                               MCP servers
+
+                       Installation         ✅                 Manual and auto
+                                                               install with AI
+
+  Advanced                                                     
+
+                       Smart File-watching  ✅                 Smart updates with
+                                                               config file watching
+
+                       Multi-instance       ✅                 All neovim instances
+                                                               stay in sync
+
+                       Shutdown-delay       ✅                 Can run as systemd
+                                                               service with
+                                                               configure delay
+                                                               before stopping the
+                                                               hub
+
+                       Lua Native MCP       ✅                 Write once , use
+                       Servers                                 everywhere. Can
+                                                               write tools,
+                                                               resources, prompts
+                                                               directly in lua
+  ---------------------------------------------------------------------------------
+
+NEXT STEPS                           *mcphub.nvim-what-is-mcp-hub?-next-steps*
 
 - Installation Guide </installation> - Set up MCPHub in your Neovim
 - Configuration Guide </configuration> - Learn about configuring MCP Hub
@@ -2536,26 +2638,27 @@ doc/other/architecture.md doc/other/troubleshooting.md
 ==============================================================================
 7. Links                                                   *mcphub.nvim-links*
 
-1. *Image*: doc/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
-2. *Image*: doc/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
-3. *Image*: doc/mcp/https:/github.com/user-attachments/assets/f5c8adfa-601e-4d03-8745-75180a9d3648
-4. *Image*: doc/mcp/https:/github.com/user-attachments/assets/2d0a0d8b-18ca-4ac8-a207-4758d09d359d
-5. *Image*: doc/mcp/https:/github.com/user-attachments/assets/359bc81e-d6fe-47bb-a25b-572bf280851e
-6. *Image*: doc/mcp/https:/github.com/user-attachments/assets/1cb950da-2f7f-46e9-a623-4cc4b00cc3d0
-7. *Image*: doc/extensions/https:/github.com/user-attachments/assets/47086587-d10a-4749-a5df-3a562750010e
-8. *Image*: doc/extensions/https:/github.com/user-attachments/assets/dbc0d210-2ccf-49f8-b1f5-58d868dc02c8
-9. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
-10. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
-11. *image*: doc/extensions/https:/github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a
-12. *image*: doc/extensions/https:/github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32
-13. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
-14. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
-15. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7c16bc7e-a9df-4afc-9736-2ee6a39919a9
-16. *Image*: doc/extensions/https:/github.com/user-attachments/assets/adc556bb-7d5f-4d22-820a-a7daeb0ac72c
-17. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7f77bf1e-12b7-4745-a87b-40181a619733
-18. *image*: doc/extensions/https:/github.com/user-attachments/assets/f67802fe-6b0c-48a5-9275-bff9f830ce29
-19. *image*: doc/extensions/https:/github.com/user-attachments/assets/f90f7cc4-ff34-4481-9732-a0331a26502b
-20. *image*: doc/extensions/https:/github.com/user-attachments/assets/f6bdeeec-48f7-48de-89a5-22236a52843f
+1. *Image*: doc/https:/github.com/user-attachments/assets/21fe7703-9bc3-4c01-93ce-3230521bd5bf
+2. *Image*: doc/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+3. *Image*: doc/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+4. *Image*: doc/mcp/https:/github.com/user-attachments/assets/f5c8adfa-601e-4d03-8745-75180a9d3648
+5. *Image*: doc/mcp/https:/github.com/user-attachments/assets/2d0a0d8b-18ca-4ac8-a207-4758d09d359d
+6. *Image*: doc/mcp/https:/github.com/user-attachments/assets/359bc81e-d6fe-47bb-a25b-572bf280851e
+7. *Image*: doc/mcp/https:/github.com/user-attachments/assets/1cb950da-2f7f-46e9-a623-4cc4b00cc3d0
+8. *Image*: doc/extensions/https:/github.com/user-attachments/assets/47086587-d10a-4749-a5df-3a562750010e
+9. *Image*: doc/extensions/https:/github.com/user-attachments/assets/dbc0d210-2ccf-49f8-b1f5-58d868dc02c8
+10. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+11. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+12. *image*: doc/extensions/https:/github.com/user-attachments/assets/fb04393c-a9da-4704-884b-2810ff69f59a
+13. *image*: doc/extensions/https:/github.com/user-attachments/assets/678a06a5-ada9-4bb5-8f49-6e58549c8f32
+14. *Image*: doc/extensions/https:/github.com/user-attachments/assets/f85380dc-e70b-4821-88a8-f1ec2c4e3cf6
+15. *Image*: doc/extensions/https:/github.com/user-attachments/assets/64708065-3428-4eb3-82a5-e32d2d1f98c6
+16. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7c16bc7e-a9df-4afc-9736-2ee6a39919a9
+17. *Image*: doc/extensions/https:/github.com/user-attachments/assets/adc556bb-7d5f-4d22-820a-a7daeb0ac72c
+18. *Image*: doc/extensions/https:/github.com/user-attachments/assets/7f77bf1e-12b7-4745-a87b-40181a619733
+19. *image*: doc/extensions/https:/github.com/user-attachments/assets/f67802fe-6b0c-48a5-9275-bff9f830ce29
+20. *image*: doc/extensions/https:/github.com/user-attachments/assets/f90f7cc4-ff34-4481-9732-a0331a26502b
+21. *image*: doc/extensions/https:/github.com/user-attachments/assets/f6bdeeec-48f7-48de-89a5-22236a52843f
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 

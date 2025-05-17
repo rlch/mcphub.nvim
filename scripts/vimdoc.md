@@ -11,7 +11,7 @@ doc/mcp/servers_json.md
 
 ## Lua MCP Servers
 ```{.include shift-heading-level-by=2}
-doc/mcp/native/why.md
+doc/mcp/native/index.md
 doc/mcp/native/registration.md
 doc/mcp/native/tools.md
 doc/mcp/native/resources.md
