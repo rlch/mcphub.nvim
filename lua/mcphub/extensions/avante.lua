@@ -91,7 +91,13 @@ function M.mcp_tool()
                     },
                     callback = function(result, err)
                         --result has .text and .images [{mimeType, data}]
-                        on_complete(result.text, err)
+                        local text = result and result.text or ""
+                        if not text or text == "" then
+                            local empty_response =
+                                string.format("`%s` successfull. `%s` returned no text.", params.action, params.uri)
+                            text = empty_response
+                        end
+                        on_complete(text, err)
                     end,
                 })
             elseif params.action == "use_mcp_tool" then
@@ -105,7 +111,16 @@ function M.mcp_tool()
                         if result.error then
                             on_complete(nil, result.error)
                         else
-                            on_complete(result.text, err)
+                            local text = result and result.text or ""
+                            if not text or text == "" then
+                                local empty_response = string.format(
+                                    "`%s` successfull. `%s` returned no text.",
+                                    params.action,
+                                    params.tool_name
+                                )
+                                text = empty_response
+                            end
+                            on_complete(text, err)
                         end
                     end,
                 })

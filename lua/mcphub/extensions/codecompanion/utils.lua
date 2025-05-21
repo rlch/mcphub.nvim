@@ -150,6 +150,7 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
             local result = has_function_calling and stdout[#stdout] or cmd[#cmd]
             agent = has_function_calling and agent or self
             -- Show text content if present
+            local tool_call_result_added = false
             if result.text and result.text ~= "" then
                 local to_llm = string.format(
                     [[**`%s` Tool**: Returned the following:
@@ -161,13 +162,12 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
                     result.text
                 )
                 add_tool_output(action_name, self, agent.chat, to_llm, false, has_function_calling, opts)
-            else
+                tool_call_result_added = true
+            end
+            if not tool_call_result_added then
                 -- When a tool returns no text content, still send a message to
                 -- ensure the tool_call_id protocol is satisfied
-                local to_llm = string.format(
-                    "**`%s` Tool**: Completed with no output",
-                    action_name
-                )
+                local to_llm = string.format("**`%s` Tool**: Completed with no output", action_name)
                 add_tool_output(action_name, self, agent.chat, to_llm, false, has_function_calling, opts)
             end
             -- TODO: Add image support when codecompanion supports it
