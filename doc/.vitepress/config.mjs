@@ -42,6 +42,18 @@ export default withMermaid(
     base: "/mcphub.nvim/",
     sitemap: { hostname: siteUrl },
     themeConfig: {
+      sponsors: {
+        enabled: true,
+        cards: [
+          {
+
+            href: "https://mcp.composio.dev/",
+            image: "/mcphub.nvim/sponsors/composio-logo.png",
+            text: "Instantly Connect to  1 00+ Managed MCP Servers with Built-In Auth",
+            alt: "Composio"
+          },
+        ]
+      },
       logo: "https://github.com/user-attachments/assets/5cdf9d69-3de7-458b-a670-5153a97c544a",
       nav: [
         {
