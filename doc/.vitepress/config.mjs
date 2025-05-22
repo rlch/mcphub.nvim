@@ -46,8 +46,7 @@ export default withMermaid(
         enabled: true,
         cards: [
           {
-
-            href: "https://mcp.composio.dev/",
+            href: "https://dub.sh/composio-mcp",
             image: "/mcphub.nvim/sponsors/composio-logo.png",
             text: "Instantly Connect to  1 00+ Managed MCP Servers with Built-In Auth",
             alt: "Composio"
