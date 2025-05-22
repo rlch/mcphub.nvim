@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2025-05-22
 
+### Added
+- Added image support in CodeCompanion extension
+
+### Fixed
+- Fixed empty tool responses handling in extensions
+- Fixed multiline input box not opening while testing capabilities 
+- Fixed MCP server stderr output being incorrectly logged as warning
+- Fixed padding issues when no servers are present
+- Fixed editor not opening while adding servers from marketplace detail view
+- Fixed type issues by setting strict to false
+- Fixed deprecated replace_headers usage (fixes #122)
+
+### Changed
+- Complete overhaul of documentation with new GitHub pages website
+  * Updated sponsors section
+  * Migrated content from wiki
+- Added more TypeScript type definitions for better code quality
+- Updated mcp-hub dependency version
 
 ## [5.2.0] - 2025-05-06
 
