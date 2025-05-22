@@ -48,7 +48,7 @@ function refresh() {
     const poweredBy = document.createElement("a")
     poweredBy.className = "carbon-poweredby"
     poweredBy.textContent = "Featured Sponsor"
-    poweredBy.href = "https://github.com/ravitemer/sponsors"
+    poweredBy.href = "https://github.com/sponsors/ravitemer"
     poweredBy.target = '_blank'
     poweredBy.rel = 'noopener'
     cardContent.appendChild(poweredBy)
