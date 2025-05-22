@@ -1,16 +1,17 @@
 # CodeCompanion Integration
 
 <p>
-<video controls muted src="https://github.com/user-attachments/assets/cefce4bb-d07f-4423-8873-cf7d56656cd3"></video>
+<video muted controls src="https://github.com/user-attachments/assets/70181790-e949-4df6-a690-c5d7a212e7d1"></video>
 </p>
 
-Add MCP capabilities to [CodeCompanion.nvim](https://github.com/olimorris/codecompanion.nvim) by including the MCP in your setup:
+Add MCP capabilities to [CodeCompanion.nvim](https://github.com/olimorris/codecompanion.nvim) by adding it as an extension. 
 
 ## Features
 
 - Access MCP tools via the `@mcp` tool in the chat buffer.
 - Utilize MCP resources as context variables using the `#` prefix (e.g., `#resource_name`).
 - Execute MCP prompts directly using `/mcp:prompt_name` slash commands.
+- Supports 🖼 images as shown in the demo.
 - Receive real-time updates in CodeCompanion when MCP servers change.
 
 ## MCP Hub Extension

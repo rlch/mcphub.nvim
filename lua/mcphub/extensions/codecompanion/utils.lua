@@ -88,8 +88,11 @@ end
 ---@param is_error boolean
 ---@param has_function_calling boolean
 ---@param opts MCPHubCodeCompanionConfig
-local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_function_calling, opts)
+---@param user_msg string?
+---@param images {id:string, base64: string, mimetype : string, cached_file_path: string| nil}[]
+local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_function_calling, opts, user_msg, images)
     local config = require("codecompanion.config")
+    local helpers = require("codecompanion.strategies.chat.helpers")
     local show_result_in_chat = opts.show_result_in_chat == true
     -- local text = show_result_in_chat and replace_headers(llm_msg) or llm_msg
     local text = llm_msg
@@ -97,9 +100,12 @@ local function add_tool_output(action_name, tool, chat, llm_msg, is_error, has_f
         chat:add_tool_output(
             tool,
             text,
-            (show_result_in_chat or is_error) and text
+            (user_msg or show_result_in_chat or is_error) and (user_msg or text)
                 or string.format("**`%s` Tool**: Successfully finished", action_name)
         )
+        for _, image in ipairs(images) do
+            helpers.add_image(chat, image)
+        end
     else
         if show_result_in_chat or is_error then
             chat:add_buf_message({
@@ -143,16 +149,18 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
                 action_name,
                 stderr
             )
-            add_tool_output(action_name, self, agent.chat, err_msg, true, has_function_calling, opts)
+            add_tool_output(action_name, self, agent.chat, err_msg, true, has_function_calling, opts, nil, {})
         end,
         success = function(self, agent, cmd, stdout)
+            local image_cache = require("mcphub.utils.image_cache")
             ---@type MCPResponseOutput
             local result = has_function_calling and stdout[#stdout] or cmd[#cmd]
             agent = has_function_calling and agent or self
-            -- Show text content if present
-            local tool_call_result_added = false
+            local to_llm = nil
+            local to_user = nil
+            local images = {}
             if result.text and result.text ~= "" then
-                local to_llm = string.format(
+                to_llm = string.format(
                     [[**`%s` Tool**: Returned the following:
 
 ````
@@ -161,16 +169,52 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
                     action_name,
                     result.text
                 )
-                add_tool_output(action_name, self, agent.chat, to_llm, false, has_function_calling, opts)
-                tool_call_result_added = true
             end
-            if not tool_call_result_added then
-                -- When a tool returns no text content, still send a message to
-                -- ensure the tool_call_id protocol is satisfied
-                local to_llm = string.format("**`%s` Tool**: Completed with no output", action_name)
-                add_tool_output(action_name, self, agent.chat, to_llm, false, has_function_calling, opts)
+            if result.images and #result.images > 0 then
+                ---When the mcp call returns just images, we need to add the tool output
+                for _, image in ipairs(result.images) do
+                    local id = string.format("mcp-%s", os.time())
+                    table.insert(images, {
+                        id = id,
+                        base64 = image.data,
+                        mimetype = image.mimeType,
+                        cached_file_path = image_cache.save_image(image.data, image.mimeType),
+                    })
+                end
+                --- If there is no text response, add no of images returned
+                if not to_llm then
+                    to_llm = string.format(
+                        [[**`%s` Tool**: Returned the following:
+````
+%s
+````]],
+                        action_name,
+                        string.format("%d image%s returned", #result.images, #result.images > 1 and "s" or "")
+                    )
+                end
+                to_user = to_llm .. (#images > 0 and string.format("\n\n> Preview Images\n") or "")
+                for _, image in ipairs(images) do
+                    local file = image.cached_file_path
+                    if file then
+                        local file_name = vim.fn.fnamemodify(file, ":t")
+                        to_user = to_user .. string.format("\n![%s](%s)\n", file_name, vim.fn.fnameescape(file))
+                    else
+                        to_user = to_user .. string.format("\n![Image not saved properly](%s)\n", file)
+                    end
+                end
             end
-            -- TODO: Add image support when codecompanion supports it
+            local fallback_to_llm = string.format("**`%s` Tool**: Completed with no output", action_name)
+            add_tool_output(
+                action_name,
+                self,
+                agent.chat,
+                to_llm or fallback_to_llm,
+                false,
+                has_function_calling,
+                opts,
+                to_user,
+                images
+            )
         end,
     }
 end
@@ -214,7 +258,7 @@ function M.setup_codecompanion_variables(opts)
                 description = description,
                 callback = function(self)
                     -- this is sync and will block the UI (can't use async in variables yet)
-                    local response = hub:access_resource(server_name, uri, {
+                    local result = hub:access_resource(server_name, uri, {
                         caller = {
                             type = "codecompanion",
                             codecompanion = self,
@@ -224,7 +268,22 @@ function M.setup_codecompanion_variables(opts)
                         },
                         parse_response = true,
                     })
-                    return response and response.text
+                    if not result then
+                        return string.format("Accessing resource failed: %s", uri)
+                    end
+
+                    if result.images and #result.images > 0 then
+                        local helpers = require("codecompanion.strategies.chat.helpers")
+                        for _, image in ipairs(result.images) do
+                            local id = string.format("mcp-%s", os.time())
+                            helpers.add_image(self.Chat, {
+                                id = id,
+                                base64 = image.data,
+                                mimetype = image.mimeType,
+                            })
+                        end
+                    end
+                    return result.text
                 end,
             }
         end
@@ -299,11 +358,10 @@ function M.setup_codecompanion_slash_commands(opts)
                         local text_messages = 0
                         for i, message in ipairs(messages) do
                             local output = message.output
-                            --TODO: Currently codecompanion only supports text messages
+                            local mapped_role = message.role == "assistant" and config.constants.LLM_ROLE
+                                or message.role == "system" and config.constants.SYSTEM_ROLE
+                                or config.constants.USER_ROLE
                             if output.text and output.text ~= "" then
-                                local mapped_role = message.role == "assistant" and config.constants.LLM_ROLE
-                                    or message.role == "system" and config.constants.SYSTEM_ROLE
-                                    or config.constants.USER_ROLE
                                 text_messages = text_messages + 1
                                 -- if last message is from user, add it to the chat buffer
                                 if i == #messages and mapped_role == config.constants.USER_ROLE then
@@ -316,6 +374,17 @@ function M.setup_codecompanion_slash_commands(opts)
                                         role = mapped_role,
                                         content = output.text,
                                     })
+                                end
+                            end
+                            if output.images and #output.images > 0 then
+                                local helpers = require("codecompanion.strategies.chat.helpers")
+                                for _, image in ipairs(output.images) do
+                                    local id = string.format("mcp-%s", os.time())
+                                    helpers.add_image(self, {
+                                        id = id,
+                                        base64 = image.data,
+                                        mimetype = image.mimeType,
+                                    }, { role = mapped_role })
                                 end
                             end
                         end

@@ -4,7 +4,7 @@
 <video muted src="https://github.com/user-attachments/assets/e33fb5c3-7dbd-40b2-bec5-471a465c7f4d" controls></video>
 </p>
 
-Add MCP capabilities to [Avante.nvim](https://github.com/yetone/avante.nvim) by including the MCP in your setup:
+Add MCP capabilities to [Avante.nvim](https://github.com/yetone/avante.nvim) by following these steps:
 
 ## Add Tools To Avante
 
