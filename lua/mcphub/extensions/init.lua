@@ -14,6 +14,7 @@ local M = {}
 ---@field make_vars boolean Whether to make variables or not
 ---@field make_slash_commands boolean Whether to make slash commands or not
 ---@field show_result_in_chat boolean Whether to show the result in chat or not
+---@field show_raw_result boolean Whether to show the raw result or in a fenced code block
 
 ---@param extension MCPHubExtensionType
 ---@param config MCPHubAvanteConfig | MCPHubCodeCompanionConfig

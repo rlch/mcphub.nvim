@@ -128,6 +128,7 @@ function M.setup(opts)
         make_vars = true,
         make_slash_commands = true,
         show_result_in_chat = true,
+        show_raw_result = false,
     }, opts or {})
     local ok, cc_config = pcall(require, "codecompanion.config")
     if not ok then

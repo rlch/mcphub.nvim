@@ -163,12 +163,20 @@ function M.create_output_handlers(action_name, has_function_calling, opts)
                 to_llm = string.format(
                     [[**`%s` Tool**: Returned the following:
 
-````
+]],
+                    action_name
+                )
+                if opts.show_raw_result then
+                    to_llm = to_llm .. result.text .. "\n"
+                else
+                    to_llm = to_llm
+                        .. string.format(
+                            [[````
 %s
 ````]],
-                    action_name,
-                    result.text
-                )
+                            result.text
+                        )
+                end
             end
             if result.images and #result.images > 0 then
                 ---When the mcp call returns just images, we need to add the tool output
