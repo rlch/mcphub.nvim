@@ -94,7 +94,7 @@ function M.mcp_tool()
                         local text = result and result.text or ""
                         if not text or text == "" then
                             local empty_response =
-                                string.format("`%s` successfull. `%s` returned no text.", params.action, params.uri)
+                                string.format("`%s` successful. `%s` returned no text.", params.action, params.uri)
                             text = empty_response
                         end
                         on_complete(text, err)
@@ -114,7 +114,7 @@ function M.mcp_tool()
                             local text = result and result.text or ""
                             if not text or text == "" then
                                 local empty_response = string.format(
-                                    "`%s` successfull. `%s` returned no text.",
+                                    "`%s` successful. `%s` returned no text.",
                                     params.action,
                                     params.tool_name
                                 )
